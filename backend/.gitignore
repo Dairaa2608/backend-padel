@@ -1,0 +1,5 @@
+node_modules
+# Variables de entorno: contienen contraseñas
+.env
+# Cliente de Prisma generado (se regenera con `npm run db:generate`)
+/generated/prisma
