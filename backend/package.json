@@ -1,26 +1,16 @@
 {
   "name": "padelzone-backend",
   "version": "1.0.0",
-  "scripts": {
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:seed": "prisma db seed",
-    "db:reset": "prisma migrate reset",
-    "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
-  },
   "type": "module",
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.1",
-    "@prisma/client": "^7.10.1",
     "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.9",
-    "pg": "^8.23.1"
+    "mongoose": "^9.11.4"
   },
-  "devDependencies": {
-    "prisma": "^7.10.1"
+  "scripts": {
+    "seed": "node src/seed/seed.js"
   },
   "engines": {
-    "node": ">=22.18"
+    "node": ">=20"
   }
 }
