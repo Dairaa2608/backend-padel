@@ -1,0 +1,258 @@
+// Esquema de la base de datos de PadelZone.
+// Cada `model` se convierte en una tabla de PostgreSQL.
+// Después de cambiar este archivo: `npm run db:migrate` (crea una migración nueva).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────── ENUMS ───────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum CourtType {
+  INDOOR
+  OUTDOOR
+}
+
+enum ReservationStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+// ─────────────────────────────── USUARIOS ───────────────────────────────
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  phone        String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  reservations            Reservation[]
+  classEnrollments        ClassEnrollment[]
+  tournamentRegistrations TournamentRegistration[]
+  orders                  Order[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────── CANCHAS Y RESERVAS ───────────────────────────────
+
+model Court {
+  id           Int       @id @default(autoincrement())
+  name         String    @unique
+  type         CourtType
+  pricePerHour Int       @map("price_per_hour") // pesos colombianos, sin decimales
+  description  String
+  features     String[]
+  imageUrl     String?   @map("image_url")
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  reservations Reservation[]
+
+  @@map("courts")
+}
+
+model Reservation {
+  id         Int               @id @default(autoincrement())
+  userId     Int               @map("user_id")
+  courtId    Int               @map("court_id")
+  date       DateTime          @db.Date
+  startHour  Int               @map("start_hour") // 7..22
+  endHour    Int               @map("end_hour") // 8..23, siempre > startHour
+  totalPrice Int               @map("total_price") // se copia al reservar: no cambia si sube el precio
+  status     ReservationStatus @default(CONFIRMED)
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  court Court @relation(fields: [courtId], references: [id], onDelete: Restrict)
+
+  // Acelera la consulta de disponibilidad: "reservas de la cancha X el día Y"
+  @@index([courtId, date])
+  @@index([userId])
+  @@map("reservations")
+}
+
+// ─────────────────────────────── CLASES ───────────────────────────────
+
+model Coach {
+  id       Int     @id @default(autoincrement())
+  name     String
+  title    String
+  photoUrl String? @map("photo_url")
+
+  groups ClassGroup[]
+
+  @@map("coaches")
+}
+
+model ClassProgram {
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  type          String // Regular, Intensiva, Verano, Fin de Semana
+  description   String
+  daysOfWeek    String   @map("days_of_week")
+  hoursPerWeek  Int      @map("hours_per_week")
+  sessionHours  Int      @map("session_hours")
+  scheduleSlots String[] @map("schedule_slots") // horarios que puede elegir el alumno
+  color         String?
+  imageUrl      String?  @map("image_url")
+  active        Boolean  @default(true)
+
+  groups ClassGroup[]
+
+  @@map("class_programs")
+}
+
+model ClassGroup {
+  id           Int  @id @default(autoincrement())
+  programId    Int  @map("program_id")
+  coachId      Int  @map("coach_id")
+  minAge       Int  @map("min_age")
+  maxAge       Int? @map("max_age") // null = "en adelante"
+  monthlyPrice Int  @map("monthly_price")
+  capacity     Int
+
+  program     ClassProgram      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  coach       Coach             @relation(fields: [coachId], references: [id], onDelete: Restrict)
+  enrollments ClassEnrollment[]
+
+  @@map("class_groups")
+}
+
+model ClassEnrollment {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  groupId   Int              @map("group_id")
+  schedule  String // uno de ClassProgram.scheduleSlots
+  level     String
+  birthDate DateTime         @map("birth_date") @db.Date
+  status    EnrollmentStatus @default(ACTIVE)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group ClassGroup @relation(fields: [groupId], references: [id], onDelete: Restrict)
+
+  // Un usuario no puede inscribirse dos veces en el mismo grupo
+  // (si cancela y vuelve, se reactiva la inscripción existente)
+  @@unique([userId, groupId])
+  @@map("class_enrollments")
+}
+
+// ─────────────────────────────── TORNEOS ───────────────────────────────
+
+model Tournament {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String
+  startDate   DateTime @map("start_date") @db.Date
+  endDate     DateTime @map("end_date") @db.Date
+  category    String // Profesional, Amateur, Comunidad
+  level       String
+  location    String
+  fee         Int
+  prize       Int
+  capacity    Int
+  imageUrl    String?  @map("image_url")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  registrations TournamentRegistration[]
+
+  @@map("tournaments")
+}
+
+model TournamentRegistration {
+  id           Int              @id @default(autoincrement())
+  userId       Int              @map("user_id")
+  tournamentId Int              @map("tournament_id")
+  level        String
+  partnerName  String?          @map("partner_name") // pendiente: ¿inscripción por parejas?
+  status       EnrollmentStatus @default(ACTIVE)
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, tournamentId])
+  @@map("tournament_registrations")
+}
+
+// ─────────────────────────────── TIENDA ───────────────────────────────
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String
+  price       Int
+  stock       Int      @default(0)
+  badge       String? // "Nuevo", "Oferta", "Destacado"
+  imageUrl    String?  @map("image_url")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  userId    Int         @map("user_id")
+  subtotal  Int
+  shipping  Int
+  total     Int
+  address   String
+  phone     String
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user  User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items OrderItem[]
+
+  @@index([userId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int @id @default(autoincrement())
+  orderId   Int @map("order_id")
+  productId Int @map("product_id")
+  quantity  Int
+  unitPrice Int @map("unit_price") // precio en el momento de la compra
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("order_items")
+}
