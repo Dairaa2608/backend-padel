@@ -1,25 +1,22 @@
 # PadelZone — Backend
 
-API y base de datos del club de pádel PadelZone.
+API y base de datos del club de pádel PadelZone (stack **MERN**: MongoDB, Express, React, Node.js).
 
-- **Base de datos:** PostgreSQL 16
-- **ORM:** Prisma 7
-- **Node.js:** 22.18 o superior (recomendado: la versión LTS más reciente)
+- **Base de datos:** MongoDB Atlas (en la nube, plan gratuito)
+- **ODM:** Mongoose
+- **Node.js:** 20 o superior (recomendado: la versión LTS más reciente)
 
 ## Puesta en marcha (primera vez)
 
 Todos los comandos se ejecutan dentro de la carpeta `backend/`.
 
-### 1. Levantar PostgreSQL
+### 1. Crear la base de datos en MongoDB Atlas
 
-**Opción A — Docker (recomendada):** con Docker Desktop abierto:
-
-```bash
-docker compose up -d
-```
-
-**Opción B — PostgreSQL instalado en tu computador:** crea un usuario y una base de datos
-(desde pgAdmin o `psql`) y pon esos datos en `DATABASE_URL` en el paso 2.
+1. Crea una cuenta en <https://www.mongodb.com/cloud/atlas/register>.
+2. Crea un clúster **gratuito (M0)**.
+3. En **Database Access**, crea un usuario de base de datos con contraseña (guárdala).
+4. En **Network Access**, añade tu IP (o `0.0.0.0/0` solo para desarrollo).
+5. En el clúster, pulsa **Connect → Drivers** y copia la cadena de conexión (`mongodb+srv://...`).
 
 ### 2. Variables de entorno
 
@@ -32,35 +29,54 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-Si usas Docker con la configuración por defecto, no tienes que cambiar nada.
-Cambia `SEED_ADMIN_PASSWORD` por una contraseña propia.
+Abre `.env` y pega tu cadena de conexión en `MONGODB_URI`, con tu usuario y contraseña de Atlas.
+Escribe `padelzone` como nombre de la base de datos, justo antes del `?`:
 
-### 3. Instalar dependencias, crear las tablas y cargar los datos
+```
+MONGODB_URI="mongodb+srv://miusuario:miclave@cluster0.xxxxx.mongodb.net/padelzone?retryWrites=true&w=majority"
+```
+
+Cambia también `SEED_ADMIN_PASSWORD` por una contraseña propia.
+
+### 3. Instalar dependencias y cargar los datos
 
 ```bash
 npm install
-npm run db:migrate
-npm run db:seed
+npm run seed
 ```
+
+Debe aparecer `✅ Conectado a MongoDB` y `✅ Seed completado`.
 
 ### 4. Comprobar que funcionó
 
-```bash
-npm run db:studio
-```
+En Atlas, abre tu clúster → **Browse Collections** → base de datos `padelzone`. Deberías ver:
 
-Se abre en el navegador una interfaz visual para ver las tablas: deberías ver
-5 canchas, 4 programas de clases con 12 grupos, 4 profesores, 3 torneos, 6 productos y 1 usuario administrador.
+| Colección | Documentos |
+|---|---|
+| `courts` | 5 canchas |
+| `classprograms` | 4 programas (con 12 grupos dentro) |
+| `tournaments` | 3 torneos |
+| `products` | 6 productos |
+| `users` | 1 administrador |
+| `reservations`, `classenrollments`, `tournamentregistrations`, `orders` | vacías (se llenarán al usar la app) |
 
 ## Scripts
 
 | Comando | Qué hace |
 |---|---|
-| `npm run db:migrate` | Aplica las migraciones pendientes. Si cambiaste `schema.prisma`, crea una migración nueva |
-| `npm run db:seed` | Carga los datos iniciales (se puede ejecutar varias veces sin duplicar) |
-| `npm run db:reset` | ⚠️ Borra **todos** los datos, recrea las tablas y ejecuta el seed |
-| `npm run db:studio` | Interfaz visual de la base de datos |
-| `npm run db:generate` | Regenera el cliente de Prisma (se hace solo tras `npm install` y `db:migrate`) |
+| `npm run seed` | Crea los índices y carga los datos iniciales (se puede ejecutar varias veces sin duplicar) |
+
+## Estructura
+
+```
+backend/
+├─ src/
+│  ├─ config/db.js     ← conexión a MongoDB
+│  ├─ models/          ← un archivo por colección (esquemas de Mongoose)
+│  └─ seed/            ← datos iniciales y script que los carga
+├─ .env.example        ← plantilla de configuración (sin secretos)
+└─ package.json
+```
 
 ## Modelo de datos
 
@@ -69,39 +85,36 @@ erDiagram
     USER ||--o{ RESERVATION : hace
     COURT ||--o{ RESERVATION : "se reserva en"
     USER ||--o{ CLASS_ENROLLMENT : "se inscribe"
-    CLASS_GROUP ||--o{ CLASS_ENROLLMENT : recibe
-    CLASS_PROGRAM ||--|{ CLASS_GROUP : "se divide en"
-    COACH ||--o{ CLASS_GROUP : dicta
+    CLASS_PROGRAM ||--o{ CLASS_ENROLLMENT : "recibe (en un grupo)"
     USER ||--o{ TOURNAMENT_REGISTRATION : "se inscribe"
     TOURNAMENT ||--o{ TOURNAMENT_REGISTRATION : recibe
     USER ||--o{ ORDER : compra
-    ORDER ||--|{ ORDER_ITEM : contiene
-    PRODUCT ||--o{ ORDER_ITEM : "aparece en"
+    PRODUCT ||--o{ ORDER : "aparece en (items)"
 ```
-
-El detalle de cada tabla está en [`prisma/schema.prisma`](prisma/schema.prisma).
 
 ### Decisiones de diseño
 
-- **Dinero en pesos enteros (`Int`)**: evita errores de redondeo con decimales.
-- **Precios copiados** en `reservations.total_price` y `order_items.unit_price`: si un precio cambia, las reservas y compras antiguas no se alteran.
-- **Cancelar no borra**: se cambia `status` a `CANCELLED` y queda el historial.
-- **Restricciones CHECK** (en la migración `init`): la base de datos rechaza horas fuera de 7:00–23:00, precios negativos, cupos en cero, etc., aunque el backend tenga un error.
-- **No hay tabla de carrito**: el carrito vive en el frontend; solo se guarda el pedido final.
-- **No se guardan datos de tarjetas**: si se implementan pagos reales, se hará con una pasarela de pago.
+- **Documentos embebidos donde se leen juntos:** los grupos y su profesor van dentro de `classprograms`; los productos comprados van dentro de `orders`.
+- **Referencias donde crecen sin límite:** reservas e inscripciones son colecciones aparte que apuntan al usuario y a la cancha, clase o torneo.
+- **Sin reservas dobles:** cada reserva guarda las horas que ocupa (`slots`, p. ej. 18–20 → `[18, 19]`) y un índice único sobre cancha + fecha + hora impide que dos reservas **confirmadas** compartan una hora. Lo garantiza MongoDB aunque lleguen dos peticiones a la vez. Las canceladas no bloquean el horario.
+- **Dinero en pesos enteros:** sin decimales, para evitar errores de redondeo.
+- **Precios copiados** en `reservations.totalPrice` y `orders.items.unitPrice`: si un precio cambia, lo ya reservado o comprado no se altera.
+- **Cancelar no borra:** se cambia `status` a `CANCELLED` y queda el historial.
+- **Contraseñas** cifradas con bcrypt y ocultas por defecto en las consultas (`select: false`).
+- **No hay colección de carrito:** el carrito vive en el frontend; solo se guarda el pedido final.
+- **No se guardan datos de tarjetas:** si se implementan pagos reales, se hará con una pasarela de pago.
 
 ### Pendiente de confirmar
 
-- Inscripción a torneos individual o por parejas (`partner_name` es opcional por ahora).
-- Imágenes: hoy están dentro del frontend; los campos `image_url` quedan vacíos hasta definir dónde se alojan.
-- La regla "una cancha no puede tener dos reservas solapadas" se aplicará en el servicio de reservas, dentro de una transacción.
+- Inscripción a torneos individual o por parejas (`partnerName` es opcional por ahora).
+- Imágenes: hoy están dentro del frontend; los campos `imageUrl` quedan vacíos hasta definir dónde se alojan.
+- Control de cupos en clases y torneos: se hará en la API al inscribir (contando inscripciones activas).
 
 ## Errores comunes
 
 | Error | Causa y solución |
 |---|---|
-| `Can't reach database server at localhost:5432` | PostgreSQL no está encendido: `docker compose up -d` o inicia el servicio |
-| `port is already allocated` al usar Docker | Ya tienes otro PostgreSQL en el puerto 5432: detenlo o cambia el puerto a `"5433:5432"` y en `DATABASE_URL` |
-| `Environment variable not found: DATABASE_URL` | Falta el archivo `.env` (paso 2) |
-| `Cannot find module '.../generated/prisma/client.ts'` | Ejecuta `npm run db:generate` |
-| `Unknown file extension ".ts"` | Tu Node.js es antiguo: instala la versión LTS más reciente |
+| `Falta MONGODB_URI en el archivo .env` | No existe el archivo `.env` (paso 2) o la variable está vacía |
+| `bad auth : authentication failed` | Usuario o contraseña de Atlas incorrectos en `MONGODB_URI`. Si la contraseña tiene símbolos (`@`, `#`, `/`…), cámbiala por una sin símbolos |
+| `Could not connect to any servers in your MongoDB Atlas cluster` | Tu IP no está permitida: Atlas → **Network Access** → añade tu IP actual |
+| `querySrv ENOTFOUND` | La dirección del clúster está mal copiada, o tu red bloquea MongoDB (prueba con otra red) |
