@@ -9,7 +9,17 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, trim: true },
     role: { type: String, enum: ['USER', 'ADMIN'], default: 'USER' },
   },
-  { timestamps: true }, // añade createdAt y updatedAt automáticamente
+  {
+    timestamps: true, // añade createdAt y updatedAt automáticamente
+    toJSON: {
+      // Al enviar un usuario como JSON, nunca se incluye la contraseña cifrada
+      transform(doc, ret) {
+        delete ret.passwordHash
+        delete ret.__v
+        return ret
+      },
+    },
+  },
 )
 
 export const User = mongoose.model('User', userSchema)

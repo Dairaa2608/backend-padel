@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { ZodError } from 'zod'
 import { AppError } from '../utils/AppError.js'
 
 // Último middleware: recibe cualquier error y responde siempre con el mismo formato:
@@ -7,7 +8,11 @@ import { AppError } from '../utils/AppError.js'
 export function errorHandler(err, req, res, next) {
   let error = err
 
-  if (err instanceof mongoose.Error.CastError) {
+  if (err instanceof ZodError) {
+    // Datos que no cumplen el esquema de validación (ver middlewares/validate.js)
+    const details = err.issues.map((issue) => ({ field: issue.path.join('.'), message: issue.message }))
+    error = new AppError(400, 'VALIDATION_ERROR', 'Datos inválidos', details)
+  } else if (err instanceof mongoose.Error.CastError) {
     // Ej.: /api/courts/abc → "abc" no es un id válido de MongoDB
     error = new AppError(400, 'INVALID_ID', `El valor "${err.value}" no es un id válido`)
   } else if (err instanceof mongoose.Error.ValidationError) {
