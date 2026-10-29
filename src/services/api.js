@@ -18,14 +18,6 @@ const _products = [
   { id: 6, name: 'Grip Antideslizante Premium',desc: 'Pack de 3 grips antideslizantes de alta adherencia. Reducen la vibración.',               price:  22000, badge: 'Agotado',  badgeColor: '#757575', img: imgGrip },
 ]
 
-const _canchas = [
-  { id: 1, nombre: 'Central',     precio_hora: 120000, disponible: true,  tipo: 'Profesional' },
-  { id: 2, nombre: 'Premium',     precio_hora: 160000, disponible: true,  tipo: 'Premium' },
-  { id: 3, nombre: 'Recreativa',  precio_hora: 100000, disponible: true,  tipo: 'Recreativa' },
-  { id: 4, nombre: 'Profesional', precio_hora: 180000, disponible: false, tipo: 'Profesional' },
-  { id: 5, nombre: 'Express',     precio_hora:  90000, disponible: true,  tipo: 'Express' },
-]
-
 const _clases = [
   { id: 1, nombre: 'Clases Regulares',  desc: 'Entrenamiento semanal todos los niveles.', precio: 180000, modalidad: 'Pago mensual' },
   { id: 2, nombre: 'Clases Intensivas', desc: 'Programa de mejora acelerada en 8 semanas.', precio: 280000, modalidad: 'Programa completo' },
@@ -51,7 +43,37 @@ const saveCart = () => {
 }
 
 /* ══════════════════════════════════════════════════
-   HELPERS
+   API REAL (backend Express + MongoDB)
+   ══════════════════════════════════════════════════ */
+
+// Dirección de la API. Se puede cambiar con VITE_API_URL en el archivo .env del frontend.
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+
+/**
+ * Hace una petición a la API y devuelve el campo `data` de la respuesta.
+ * Si la API responde con error, lanza un Error con el mensaje y el código HTTP.
+ */
+async function request(path, options = {}) {
+  let response
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+    })
+  } catch {
+    throw Object.assign(new Error('No se pudo conectar con el servidor. ¿Está encendida la API?'), { status: 0 })
+  }
+
+  const body = await response.json().catch(() => null)
+  if (!response.ok) {
+    const message = body?.error?.message || 'Error inesperado del servidor'
+    throw Object.assign(new Error(message), { status: response.status, code: body?.error?.code })
+  }
+  return body.data
+}
+
+/* ══════════════════════════════════════════════════
+   HELPERS (datos simulados)
    ══════════════════════════════════════════════════ */
 
 function _delay(ms = 350) {
@@ -181,31 +203,16 @@ class Api {
     })
   }
 
-  /* ── CANCHAS ───────────────────────────────── */
+  /* ── CANCHAS (API real) ─────────────────── */
 
-  /**
-   * GET /api/courts
-   * @param {{page?:number,limit?:number}}
-   * @returns {Promise<{data:Array,total:number,page:number,limit:number}>}
-   */
-  getCourts(params = {}) {
-    return _delay(400).then(() => {
-      const { page = 1, limit = 10 } = params
-      return _page(_canchas, page, limit)
-    })
+  /** GET /api/courts — lista de canchas activas */
+  getCourts() {
+    return request('/courts')
   }
 
-  /**
-   * GET /api/courts/:id
-   * @param {{id:number}}
-   * @returns {Promise<Object>}
-   */
-  getCourtById({ id }) {
-    return _delay(200).then(() => {
-      const c = _canchas.find((x) => x.id === id)
-      if (!c) throw Object.assign(new Error('Cancha no encontrada'), { status: 404 })
-      return { ...c }
-    })
+  /** GET /api/courts/:id — una cancha */
+  getCourtById(id) {
+    return request(`/courts/${id}`)
   }
 
   /* ── CLASES ─────────────────────────────── */

@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import api from '../../services/api'
 import './Courts.css'
 
 import c1 from '../../img/Cancha1.jpg'
@@ -8,72 +9,66 @@ import c3 from '../../img/Cancha3.jpg'
 import c4 from '../../img/Cancha4.jpg'
 import c5 from '../../img/Cancha5.jpg'
 
-const courts = [
-  {
-    id: 1,
-    img: c1,
-    name: 'Cancha Central',
-    price: 120000,
-    type: 'Exterior',
-    typeIcon: 'wb_sunny',
-    desc: 'Cancha principal con césped sintético de última generación',
-    features: ['Iluminación LED', 'Césped sintético premium', 'Vestuarios incluidos']
-  },
-  {
-    id: 2,
-    img: c2,
-    name: 'Cancha Premium',
-    price: 160000,
-    type: 'Interior',
-    typeIcon: 'home',
-    desc: 'Cancha techada con climatización y iluminación LED',
-    features: ['Climatización', 'Cristal panorámico', 'Suelo profesional']
-  },
-  {
-    id: 3,
-    img: c3,
-    name: 'Cancha Recreativa',
-    price: 100000,
-    type: 'Exterior',
-    typeIcon: 'wb_sunny',
-    desc: 'Perfecta para principiantes y partidos casuales',
-    features: ['Ideal principiantes', 'Ambiente relajado', 'Precio accesible']
-  },
-  {
-    id: 4,
-    img: c4,
-    name: 'Cancha Profesional',
-    price: 180000,
-    type: 'Interior',
-    typeIcon: 'home',
-    desc: 'Diseñada para torneos y jugadores de alto rendimiento',
-    features: ['Normas oficiales', 'Gradas para público', 'Iluminación HD']
-  },
-  {
-    id: 5,
-    img: c5,
-    name: 'Cancha Express',
-    price: 90000,
-    type: 'Exterior',
-    typeIcon: 'wb_sunny',
-    desc: 'Ideal para partidos rápidos en horarios de menor demanda',
-    features: ['Acceso rápido', 'Sin reserva mínima', 'Estacionamiento cercano']
-  }
-]
+// Las fotos siguen dentro del frontend: se asocian a cada cancha por su nombre
+const courtImages = {
+  'Cancha Central': c1,
+  'Cancha Premium': c2,
+  'Cancha Recreativa': c3,
+  'Cancha Profesional': c4,
+  'Cancha Express': c5,
+}
+
+const courtTypes = {
+  INDOOR: { label: 'Interior', icon: 'home' },
+  OUTDOOR: { label: 'Exterior', icon: 'wb_sunny' },
+}
+
+// Convierte una cancha tal como llega de la API al formato que usa esta página
+const toViewCourt = (court, index) => ({
+  id: court._id,
+  order: index,
+  name: court.name,
+  price: court.pricePerHour,
+  type: courtTypes[court.type]?.label ?? court.type,
+  typeIcon: courtTypes[court.type]?.icon ?? 'sports_tennis',
+  desc: court.description,
+  features: court.features,
+  img: court.imageUrl || courtImages[court.name] || c1,
+})
 
 const filters = ['Todas', 'Interior', 'Exterior']
 
 function CourtsPage() {
   const [activeFilter, setActiveFilter] = useState('Todas')
   const [sortBy, setSortBy] = useState('default')
+  const [courts, setCourts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const navigate = useNavigate()
+
+  const fetchCourts = () =>
+    api.getCourts()
+      .then((data) => setCourts(data.map(toViewCourt)))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false))
+
+  // Al abrir la página se piden las canchas a la API
+  useEffect(() => {
+    fetchCourts()
+  }, [])
+
+  const retry = () => {
+    setLoading(true)
+    setError(null)
+    fetchCourts()
+  }
 
   const filtered = courts
     .filter(c => activeFilter === 'Todas' || c.type === activeFilter)
     .sort((a, b) => {
       if (sortBy === 'asc')  return a.price - b.price
       if (sortBy === 'desc') return b.price - a.price
-      return a.id - b.id
+      return a.order - b.order
     })
 
   const formatPrice = (p) => `$${p.toLocaleString('es-CO')}`
@@ -118,6 +113,22 @@ function CourtsPage() {
           </div>
         </div>
 
+        {loading && (
+          <div className="courts-status">
+            <i className="material-icons spinning">refresh</i>
+            <p>Cargando canchas…</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="courts-status courts-status-error">
+            <i className="material-icons">error_outline</i>
+            <p>{error}</p>
+            <button className="btn court-btn" onClick={retry}>Reintentar</button>
+          </div>
+        )}
+
+        {!loading && !error && (<>
         {/* Contador */}
         <p className="courts-count">
           {filtered.length} {filtered.length === 1 ? 'cancha encontrada' : 'canchas encontradas'}
@@ -166,6 +177,7 @@ function CourtsPage() {
             </div>
           ))}
         </div>
+        </>)}
 
       </div>
     </div>
