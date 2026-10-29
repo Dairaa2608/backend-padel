@@ -4,6 +4,7 @@ import mongoose from 'mongoose'
 import courtsRoutes from './courts.routes.js'
 import authRoutes from './auth.routes.js'
 import usersRoutes from './users.routes.js'
+import reservationsRoutes from './reservations.routes.js'
 
 const router = Router()
 
@@ -20,5 +21,6 @@ router.get('/health', (req, res) => {
 router.use('/courts', courtsRoutes)
 router.use('/auth', authRoutes)
 router.use('/users', usersRoutes)
+router.use('/reservations', reservationsRoutes)
 
 export default router
