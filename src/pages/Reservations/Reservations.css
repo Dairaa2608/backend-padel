@@ -781,3 +781,48 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+/* ── Reservas conectadas a la API ── */
+
+/* Mensajes de error (horario ocupado, sin conexión…) */
+.res-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #c62828;
+  font-size: 0.9rem;
+}
+
+.res-error i {
+  font-size: 1.2rem;
+}
+
+/* Datos de contacto tomados de la sesión (solo lectura) */
+.res-field input:disabled {
+  background: #f5f6fa;
+  color: #555;
+  cursor: not-allowed;
+}
+
+.res-btn-confirm:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Segundo botón del modal de confirmación */
+.res-modal-btn-secondary {
+  display: block;
+  margin: 10px auto 0;
+  background-color: transparent;
+  color: #010231;
+  border: 1.5px solid #010231;
+}
+
+.res-modal-btn-secondary:hover {
+  background-color: #f0f1f8;
+}
