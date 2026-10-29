@@ -36,7 +36,10 @@ Escribe `padelzone` como nombre de la base de datos, justo antes del `?`:
 MONGODB_URI="mongodb+srv://miusuario:miclave@cluster0.xxxxx.mongodb.net/padelzone?retryWrites=true&w=majority"
 ```
 
-Cambia también `SEED_ADMIN_PASSWORD` por una contraseña propia.
+Cambia también `SEED_ADMIN_PASSWORD` por una contraseña propia (la del administrador de la página).
+
+> **¿MongoDB instalado en tu computador (Compass con `localhost:27017`)?** Usa
+> `MONGODB_URI="mongodb://localhost:27017/padelzone"` en lugar de la cadena de Atlas.
 
 ### 3. Instalar dependencias y cargar los datos
 
@@ -60,18 +63,67 @@ En Atlas, abre tu clúster → **Browse Collections** → base de datos `padelzo
 | `users` | 1 administrador |
 | `reservations`, `classenrollments`, `tournamentregistrations`, `orders` | vacías (se llenarán al usar la app) |
 
+### 5. Arrancar la API
+
+```bash
+npm run dev
+```
+
+Debe aparecer `🚀 API escuchando en http://localhost:3000/api`. Abre en el navegador:
+
+- <http://localhost:3000/api/health> → `{"data":{"status":"ok","database":"connected"}}`
+- <http://localhost:3000/api/courts> → las 5 canchas desde MongoDB
+
+Para apagarla: **Ctrl + C**.
+
 ## Scripts
 
 | Comando | Qué hace |
 |---|---|
+| `npm run dev` | Arranca la API en modo desarrollo: se reinicia sola al guardar un archivo |
+| `npm start` | Arranca la API (modo producción, sin reinicio automático) |
 | `npm run seed` | Crea los índices y carga los datos iniciales (se puede ejecutar varias veces sin duplicar) |
+
+## Endpoints
+
+| Método | Ruta | Qué devuelve |
+|---|---|---|
+| GET | `/api/health` | Estado de la API y de la conexión a MongoDB |
+| GET | `/api/courts` | Canchas activas |
+| GET | `/api/courts/:id` | Una cancha |
+
+### Formato de las respuestas
+
+Todas las respuestas usan el mismo formato, para que el frontend las maneje igual:
+
+```json
+// Éxito
+{ "data": { ... } }
+
+// Error
+{ "error": { "code": "COURT_NOT_FOUND", "message": "Cancha no encontrada" } }
+```
+
+| Código HTTP | Cuándo |
+|---|---|
+| 200 | Todo bien |
+| 400 | Datos o id inválidos (`VALIDATION_ERROR`, `INVALID_ID`, `INVALID_JSON`) |
+| 404 | No existe el recurso o la ruta (`NOT_FOUND`, `COURT_NOT_FOUND`) |
+| 409 | Registro duplicado (`DUPLICATE`) |
+| 500 | Error inesperado del servidor (`INTERNAL_ERROR`) |
 
 ## Estructura
 
 ```
 backend/
 ├─ src/
+│  ├─ server.js        ← punto de entrada: carga .env, conecta a MongoDB y arranca
+│  ├─ app.js           ← configura Express (CORS, JSON, rutas, errores)
 │  ├─ config/db.js     ← conexión a MongoDB
+│  ├─ routes/          ← qué URL llama a qué función
+│  ├─ controllers/     ← qué hace cada URL (consulta los modelos y responde)
+│  ├─ middlewares/     ← piezas que se ejecutan en cada petición (errores, 404…)
+│  ├─ utils/           ← utilidades (AppError)
 │  ├─ models/          ← un archivo por colección (esquemas de Mongoose)
 │  └─ seed/            ← datos iniciales y script que los carga
 ├─ .env.example        ← plantilla de configuración (sin secretos)
@@ -117,4 +169,6 @@ erDiagram
 | `Falta MONGODB_URI en el archivo .env` | No existe el archivo `.env` (paso 2) o la variable está vacía |
 | `bad auth : authentication failed` | Usuario o contraseña de Atlas incorrectos en `MONGODB_URI`. Si la contraseña tiene símbolos (`@`, `#`, `/`…), cámbiala por una sin símbolos |
 | `Could not connect to any servers in your MongoDB Atlas cluster` | Tu IP no está permitida: Atlas → **Network Access** → añade tu IP actual |
+| `EADDRINUSE: address already in use :::3000` | Ya hay otra API encendida en el puerto 3000: ciérrala (Ctrl + C en su terminal) o cambia `PORT` en `.env` |
+| `Invalid scheme, expected connection string to start with "mongodb://"` | La línea `MONGODB_URI` de `.env` está mal escrita: espacios, comillas curvas o falta `mongodb://` |
 | `querySrv ENOTFOUND` | La dirección del clúster está mal copiada, o tu red bloquea MongoDB (prueba con otra red) |
