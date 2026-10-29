@@ -1,3 +1,5 @@
+
+
 .courts-page {
   background-color: #f5f6fa;
   min-height: 100vh;
@@ -263,4 +265,23 @@
     flex-direction: column;
     align-items: flex-start;
   }
+}
+/* Estados de carga y error al pedir las canchas a la API */
+.courts-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 16px;
+  color: #546e7a;
+  text-align: center;
+}
+
+.courts-status .material-icons {
+  font-size: 48px;
+  color: #1e3c72;
+}
+
+.courts-status-error .material-icons {
+  color: #e53935;
 }
