@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -15,29 +16,40 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const storedUser = localStorage.getItem('padelzone_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    // Al abrir la página se pregunta a la API si hay una sesión iniciada (cookie)
+    api.me()
+      .then(setUser)
+      .catch(() => setUser(null))
+      .finally(() => setLoading(false));
   }, []);
 
-  const login = (userData) => {
-    setUser(userData);
-    localStorage.setItem('padelzone_user', JSON.stringify(userData));
+  const login = async (email, password) => {
+    const loggedUser = await api.login({ email, password });
+    setUser(loggedUser);
+    return loggedUser;
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('padelzone_user');
+  const register = async (data) => {
+    const newUser = await api.register(data);
+    setUser(newUser);
+    return newUser;
+  };
+
+  const logout = async () => {
+    try {
+      await api.logout();
+    } finally {
+      setUser(null);
+    }
   };
 
   const value = {
     user,
     login,
+    register,
     logout,
     isAuthenticated: !!user,
+    isAdmin: user?.role === 'ADMIN',
     loading
   };
 

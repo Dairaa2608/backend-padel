@@ -68,28 +68,12 @@ function Login() {
     setLoading(true)
 
     try {
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (Math.random() < 0.1) {
-            reject(new Error('Error de conexión. Verifica tu internet.'))
-            return
-          }
-          if (validateEmail(form.email)) {
-            resolve()
-          } else {
-            reject(new Error('Credenciales inválidas.'))
-          }
-        }, 800)
-      })
+      // La API comprueba el email y la contraseña de verdad
+      await login(form.email, form.password)
 
       if (rememberEmail) {
         localStorage.setItem('rememberedEmail', form.email)
       }
-
-      login({
-        email: form.email,
-        name: form.email.split('@')[0],
-      })
 
       navigate(from, { replace: true, state: location.state })
 
@@ -202,11 +186,6 @@ function Login() {
                 ¿Olvidaste tu contraseña?
               </button>
             </div>
-
-            <p className="login-note" id="login-help">
-              <i className="material-icons tiny" aria-hidden="true">info</i>
-              Esta es una demostración. Cualquier email válido funciona.
-            </p>
           </form>
 
           <div className="login-divider">

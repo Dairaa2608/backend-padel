@@ -18,7 +18,7 @@ function Register() {
   const [acceptTerms, setAcceptTerms] = useState(false)
 
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { register } = useAuth()
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -94,29 +94,12 @@ function Register() {
     setLoading(true)
 
     try {
-      // Simulate API call for registration
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simulate random registration error (5% chance)
-          if (Math.random() < 0.05) {
-            reject(new Error('Error en el servidor. Inténtalo de nuevo.'))
-            return
-          }
-
-          // Check if email already exists (simulate)
-          if (form.email === 'admin@example.com') {
-            reject(new Error('Este email ya está registrado.'))
-            return
-          }
-
-          resolve()
-        }, 1000)
-      })
-
-      // Auto-login after successful registration
-      login({
-        email: form.email,
+      // La API crea la cuenta (con la contraseña cifrada) e inicia la sesión
+      await register({
         name: form.name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone,
       })
 
       navigate('/reservar', { replace: true })
@@ -192,7 +175,7 @@ function Register() {
                 type="tel"
                 id="phone"
                 name="phone"
-                placeholder="+56 9 1234 5678"
+                placeholder="+57 300 123 4567"
                 value={form.phone}
                 onChange={handleChange}
                 autoComplete="tel"
