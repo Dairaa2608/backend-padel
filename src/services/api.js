@@ -270,6 +270,14 @@ class Api {
   me() {
     return request('/auth/me')
   }
+  /** PATCH /api/users/me — edita el perfil del usuario con sesión */
+  updateProfile({ name, email, phone }) {
+    return request('/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify({ name, email, phone: phone || undefined }),
+    })
+  }
+
 }
 
 /* ══════════════════════════════════════════════════
