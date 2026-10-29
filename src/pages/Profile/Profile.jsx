@@ -1,17 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../services/api'
+import { getCourtImage, getCourtTypeLabel, formatPrice, formatHour, todayString } from '../../utils/courts'
 import './Profile.css'
 
-import c1 from '../../img/Cancha1.jpg'
-import c2 from '../../img/Cancha2.jpg'
-import c3 from '../../img/Cancha3.jpg'
-import c4 from '../../img/Cancha4.jpg'
-import c5 from '../../img/Cancha5.jpg'
+// Convierte una reserva tal como llega de la API al formato de las tarjetas
+const toViewReservation = (r) => ({
+  id: r._id,
+  court: r.court?.name ?? 'Cancha',
+  courtType: getCourtTypeLabel(r.court?.type),
+  img: getCourtImage(r.court),
+  date: r.date,
+  startHourNumber: r.startHour,
+  startHour: formatHour(r.startHour),
+  endHour: formatHour(r.endHour),
+  duration: r.endHour - r.startHour,
+  total: r.totalPrice,
+  status: r.status,
+})
 
-const courtImages = { 1: c1, 2: c2, 3: c3, 4: c4, 5: c5 }
-
-const formatPrice = (p) => `$${p.toLocaleString('es-CO')}`
+// Confirmada y todavía no ha empezado
+const isUpcoming = (res) => {
+  if (res.status !== 'CONFIRMED') return false
+  const today = todayString()
+  return res.date > today || (res.date === today && res.startHourNumber > new Date().getHours())
+}
 
 function Profile() {
   const { user, isAuthenticated, isAdmin, logout, updateProfile } = useAuth()
@@ -24,29 +38,37 @@ function Profile() {
   const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('reservations')
   const [cancelTarget, setCancelTarget] = useState(null)
+  const [reservationsError, setReservationsError] = useState('')
 
-    useEffect(() => {
-    if (!isAuthenticated) {
-        navigate('/login')
-        return
-    }
-    setEditForm({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' })
-    loadReservations()
-    }, [isAuthenticated, navigate, user?.name, user?.email, user?.phone])
-
+  // Mis reservas, pedidas a la API (ya vienen ordenadas: las más recientes primero)
   const loadReservations = () => {
-    const stored = JSON.parse(localStorage.getItem('padelzone_reservations') || '[]')
-    // Mostrar solo las del usuario actual por email
-    const userRes = stored.filter(r => r.email === user?.email)
-    setReservations(userRes.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)))
+    api.getMyReservations()
+      .then((data) => {
+        setReservations(data.map(toViewReservation))
+        setReservationsError('')
+      })
+      .catch((err) => setReservationsError(err.message))
   }
 
-  const handleCancelReservation = (id) => {
-    const all = JSON.parse(localStorage.getItem('padelzone_reservations') || '[]')
-    const updated = all.filter(r => r.id !== id)
-    localStorage.setItem('padelzone_reservations', JSON.stringify(updated))
-    setReservations(prev => prev.filter(r => r.id !== id))
-    setCancelTarget(null)
+  // Al abrir el perfil se piden mis reservas a la API
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login')
+      return
+    }
+    loadReservations()
+  }, [isAuthenticated, navigate])
+
+  // La API marca la reserva como cancelada y el horario queda libre otra vez
+  const handleCancelReservation = async (id) => {
+    try {
+      await api.cancelReservation(id)
+      loadReservations()
+    } catch (err) {
+      setReservationsError(err.message)
+    } finally {
+      setCancelTarget(null)
+    }
   }
 
   const startEdit = () => {
@@ -79,10 +101,9 @@ function Profile() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
-  const isUpcoming = (date) => new Date(date) >= new Date(new Date().toDateString())
-
-  const upcoming = reservations.filter(r => isUpcoming(r.date))
-  const past = reservations.filter(r => !isUpcoming(r.date))
+  const confirmed = reservations.filter(r => r.status === 'CONFIRMED')
+  const upcoming = reservations.filter(isUpcoming)
+  const past = reservations.filter(r => !isUpcoming(r))
 
   return (
     <div className="profile-page">
@@ -117,7 +138,7 @@ function Profile() {
           <div className="profile-stat-card">
             <i className="material-icons">event_available</i>
             <div>
-              <span className="stat-number">{reservations.length}</span>
+              <span className="stat-number">{confirmed.length}</span>
               <span className="stat-label">Reservas totales</span>
             </div>
           </div>
@@ -132,7 +153,7 @@ function Profile() {
             <i className="material-icons">payments</i>
             <div>
               <span className="stat-number">
-                {formatPrice(reservations.reduce((acc, r) => acc + r.total, 0))}
+                {formatPrice(confirmed.reduce((acc, r) => acc + r.total, 0))}
               </span>
               <span className="stat-label">Total gastado</span>
             </div>
@@ -164,6 +185,13 @@ function Profile() {
         {activeTab === 'reservations' && (
           <div className="profile-reservations">
 
+            {reservationsError && (
+              <p className="profile-edit-error">
+                <i className="material-icons">error_outline</i>
+                {reservationsError}
+              </p>
+            )}
+
             {reservations.length === 0 ? (
               <div className="profile-empty">
                 <i className="material-icons">event_busy</i>
@@ -188,7 +216,6 @@ function Profile() {
                           key={res.id}
                           res={res}
                           upcoming={true}
-                          courtImages={courtImages}
                           onCancel={() => setCancelTarget(res.id)}
                         />
                       ))}
@@ -209,7 +236,6 @@ function Profile() {
                           key={res.id}
                           res={res}
                           upcoming={false}
-                          courtImages={courtImages}
                           onCancel={null}
                         />
                       ))}
@@ -344,13 +370,14 @@ function Profile() {
   )
 }
 
-function ReservationCard({ res, upcoming, courtImages, onCancel }) {
+function ReservationCard({ res, upcoming, onCancel }) {
+  const statusLabel = res.status === 'CANCELLED' ? 'Cancelada' : upcoming ? 'Próxima' : 'Completada'
   return (
     <div className={`res-card ${upcoming ? 'upcoming' : 'past'}`}>
       <div className="res-card-img">
-        <img src={courtImages[res.courtImg] || courtImages[1]} alt={res.court} />
+        <img src={res.img} alt={res.court} />
         <span className={`res-card-status ${upcoming ? 'upcoming' : 'past'}`}>
-          {upcoming ? 'Próxima' : 'Completada'}
+          {statusLabel}
         </span>
       </div>
       <div className="res-card-body">

@@ -218,6 +218,31 @@ class Api {
     return request(`/courts/${id}`)
   }
 
+
+  /* ── RESERVAS (API real) ────────────────── */
+
+  /** GET /api/courts/:id/availability?date= — horas libres y ocupadas de una cancha */
+  getAvailability(courtId, date) {
+    return request(`/courts/${courtId}/availability?date=${date}`)
+  }
+
+  /** POST /api/reservations — reservar (el precio lo calcula la API) */
+  createReservation({ courtId, date, startHour, endHour }) {
+    return request('/reservations', {
+      method: 'POST',
+      body: JSON.stringify({ courtId, date, startHour, endHour }),
+    })
+  }
+
+  /** GET /api/reservations/me — mis reservas */
+  getMyReservations() {
+    return request('/reservations/me')
+  }
+
+  /** PATCH /api/reservations/:id/cancel — cancelar una reserva */
+  cancelReservation(id) {
+    return request(`/reservations/${id}/cancel`, { method: 'PATCH' })
+  }
   /* ── CLASES ─────────────────────────────── */
 
   /**
