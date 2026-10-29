@@ -14,12 +14,14 @@ const courtImages = { 1: c1, 2: c2, 3: c3, 4: c4, 5: c5 }
 const formatPrice = (p) => `$${p.toLocaleString('es-CO')}`
 
 function Profile() {
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, isAdmin, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
 
   const [reservations, setReservations] = useState([])
   const [editMode, setEditMode] = useState(false)
-  const [editForm, setEditForm] = useState({ name: '', email: '' })
+  const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' })
+  const [editError, setEditError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [activeTab, setActiveTab] = useState('reservations')
   const [cancelTarget, setCancelTarget] = useState(null)
 
@@ -28,9 +30,9 @@ function Profile() {
         navigate('/login')
         return
     }
-    setEditForm({ name: user?.name || '', email: user?.email || '' })
+    setEditForm({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' })
     loadReservations()
-    }, [isAuthenticated, navigate, user?.name, user?.email])
+    }, [isAuthenticated, navigate, user?.name, user?.email, user?.phone])
 
   const loadReservations = () => {
     const stored = JSON.parse(localStorage.getItem('padelzone_reservations') || '[]')
@@ -47,14 +49,28 @@ function Profile() {
     setCancelTarget(null)
   }
 
-  const handleEditSave = () => {
-    const updatedUser = { ...user, name: editForm.name, email: editForm.email }
-    localStorage.setItem('padelzone_user', JSON.stringify(updatedUser))
-    setEditMode(false)
+  const startEdit = () => {
+    setEditForm({ name: user?.name || '', email: user?.email || '', phone: user?.phone || '' })
+    setEditError('')
+    setEditMode(true)
   }
 
-  const handleLogout = () => {
-    logout()
+  // Guarda los cambios en la base de datos a través de la API
+  const handleEditSave = async () => {
+    setSaving(true)
+    setEditError('')
+    try {
+      await updateProfile(editForm)
+      setEditMode(false)
+    } catch (err) {
+      setEditError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleLogout = async () => {
+    await logout()
     navigate('/')
   }
 
@@ -82,8 +98,8 @@ function Profile() {
               <h1>{user?.name || 'Usuario'}</h1>
               <p>{user?.email}</p>
               <span className="profile-badge">
-                <i className="material-icons">verified</i>
-                Miembro PadelZone
+                <i className="material-icons">{isAdmin ? 'admin_panel_settings' : 'verified'}</i>
+                {isAdmin ? 'Administrador' : 'Miembro PadelZone'}
               </span>
             </div>
             <button className="profile-logout-btn" onClick={handleLogout}>
@@ -211,7 +227,7 @@ function Profile() {
             <div className="profile-data-header">
               <h5>Información Personal</h5>
               {!editMode && (
-                <button className="profile-edit-btn" onClick={() => setEditMode(true)}>
+                <button className="profile-edit-btn" onClick={startEdit}>
                   <i className="material-icons">edit</i>
                   Editar
                 </button>
@@ -220,6 +236,12 @@ function Profile() {
 
             {editMode ? (
               <div className="profile-edit-form">
+                {editError && (
+                  <p className="profile-edit-error">
+                    <i className="material-icons">error_outline</i>
+                    {editError}
+                  </p>
+                )}
                 <div className="profile-edit-field">
                   <label>Nombre</label>
                   <input
@@ -236,12 +258,21 @@ function Profile() {
                     onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))}
                   />
                 </div>
+                <div className="profile-edit-field">
+                  <label>Teléfono</label>
+                  <input
+                    type="tel"
+                    placeholder="+57 300 123 4567"
+                    value={editForm.phone}
+                    onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                  />
+                </div>
                 <div className="profile-edit-actions">
-                  <button className="profile-save-btn" onClick={handleEditSave}>
+                  <button className="profile-save-btn" onClick={handleEditSave} disabled={saving}>
                     <i className="material-icons">check</i>
-                    Guardar
+                    {saving ? 'Guardando...' : 'Guardar'}
                   </button>
-                  <button className="profile-cancel-edit-btn" onClick={() => setEditMode(false)}>
+                  <button className="profile-cancel-edit-btn" onClick={() => setEditMode(false)} disabled={saving}>
                     Cancelar
                   </button>
                 </div>
@@ -264,6 +295,15 @@ function Profile() {
                   <div>
                     <p className="profile-data-label">Email</p>
                     <p className="profile-data-value">{user?.email || '—'}</p>
+                  </div>
+                </div>
+                <div className="profile-data-row">
+                  <div className="profile-data-icon">
+                    <i className="material-icons">phone</i>
+                  </div>
+                  <div>
+                    <p className="profile-data-label">Teléfono</p>
+                    <p className="profile-data-value">{user?.phone || '—'}</p>
                   </div>
                 </div>
               </div>

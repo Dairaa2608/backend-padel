@@ -625,3 +625,20 @@
   .res-cards-grid { grid-template-columns: 1fr; }
   .profile-tabs { width: 100%; }
 }
+
+/* Error al guardar el perfil (lo envía la API) */
+.profile-edit-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fdecea;
+  color: #c62828;
+  font-size: 0.88rem;
+}
+
+.profile-edit-error i {
+  font-size: 1.1rem;
+}

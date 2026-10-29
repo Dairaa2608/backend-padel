@@ -35,6 +35,12 @@ export const AuthProvider = ({ children }) => {
     return newUser;
   };
 
+  const updateProfile = async (data) => {
+    const updatedUser = await api.updateProfile(data);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -47,6 +53,7 @@ export const AuthProvider = ({ children }) => {
     user,
     login,
     register,
+    updateProfile,
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',

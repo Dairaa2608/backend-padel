@@ -9,8 +9,8 @@ function Navbar() {
   const [servicesOpen, setServicesOpen] = useState(false)
   const dropdownRef = useRef(null)
 
-  const handleLogout = () => {
-    logout()
+  const handleLogout = async () => {
+    await logout()
     navigate('/')
   }
 
