@@ -58,6 +58,8 @@ async function request(path, options = {}) {
   try {
     response = await fetch(`${API_URL}${path}`, {
       ...options,
+      // Envía y recibe la cookie de sesión (el "token") en cada petición
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json', ...options.headers },
     })
   } catch {
@@ -66,7 +68,8 @@ async function request(path, options = {}) {
 
   const body = await response.json().catch(() => null)
   if (!response.ok) {
-    const message = body?.error?.message || 'Error inesperado del servidor'
+    // Si la API explica qué campo está mal, se muestra ese motivo concreto
+    const message = body?.error?.details?.[0]?.message || body?.error?.message || 'Error inesperado del servidor'
     throw Object.assign(new Error(message), { status: response.status, code: body?.error?.code })
   }
   return body.data
@@ -243,42 +246,34 @@ class Api {
     })
   }
 
-  /* ── AUTH ──────────────────────────────── */
+  /* ── AUTH (API real) ─────────────────── */
 
-  /**
-   * POST /api/auth/login
-   * @param {{email:string,password:string}}
-   * @returns {Promise<{token:string,user:{id:number,nombre:string,email:string}}>}
-   */
-  async login({ email, password }) {
-    await _delay(600)
-    if (!email || !password) {
-      throw Object.assign(new Error('Email y contraseña requeridos'), { status: 400 })
-    }
-    if (password.length < 4) {
-      throw Object.assign(new Error('Credenciales inválidas'), { status: 401 })
-    }
-    return {
-      token: `mock-jwt-${Date.now().toString(36)}`,
-      user: { id: 1, nombre: 'Jugador Demo', email },
-    }
+  /** POST /api/auth/register — crea la cuenta e inicia sesión */
+  register({ name, email, password, phone }) {
+    return request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password, phone: phone || undefined }),
+    })
   }
 
-  /**
-   * GET /api/profile
-   * @param {string} token — token del usuario (no se valida en mock)
-   * @returns {Promise<{id:number,nombre:string,email:string,telefono:string,membresia:string}>}
-   */
-  getProfile(token) {
-    return _delay(250).then(() => ({
-      id: 1, nombre: 'Jugador Demo', email: 'demo@padelzone.com',
-      telefono: '+57 300 000 0000', membresia: 'VIP',
-    }))
+  /** POST /api/auth/login — inicia sesión (la API guarda el token en una cookie) */
+  login({ email, password }) {
+    return request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+  }
+
+  /** POST /api/auth/logout — cierra la sesión */
+  logout() {
+    return request('/auth/logout', { method: 'POST' })
+  }
+
+  /** GET /api/auth/me — usuario de la sesión actual (error 401 si no hay sesión) */
+  me() {
+    return request('/auth/me')
   }
 }
 
 /* ══════════════════════════════════════════════════
-   EXPORT
+    EXPORT
    ══════════════════════════════════════════════════ */
 
 export const api = new Api()
