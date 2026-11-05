@@ -18,3 +18,15 @@ export function isPast(date, hour) {
     const today = todayInColombia()
     return date < today || (date === today && hour <= currentHourInColombia())
 }
+
+// Día de la semana de una fecha "2026-11-16": 0 = domingo … 6 = sábado
+export function weekdayOf(date) {
+    return new Date(`${date}T12:00:00Z`).getUTCDay()
+}
+
+// "4:00 PM" → 16
+export function hourFromSlot(slot) {
+    const [, h, period] = slot.match(/^(\d{1,2}):\d{2}\s*(AM|PM)$/i)
+    const hour = Number(h) % 12
+    return period.toUpperCase() === 'PM' ? hour + 12 : hour
+}

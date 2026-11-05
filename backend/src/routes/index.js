@@ -5,7 +5,7 @@ import courtsRoutes from './courts.routes.js'
 import authRoutes from './auth.routes.js'
 import usersRoutes from './users.routes.js'
 import reservationsRoutes from './reservations.routes.js'
-
+import classesRoutes from './classes.routes.js'
 const router = Router()
 
 // Comprobar que la API (y la conexión a MongoDB) funcionan
@@ -22,5 +22,6 @@ router.use('/courts', courtsRoutes)
 router.use('/auth', authRoutes)
 router.use('/users', usersRoutes)
 router.use('/reservations', reservationsRoutes)
+router.use('/classes', classesRoutes)
 
 export default router
