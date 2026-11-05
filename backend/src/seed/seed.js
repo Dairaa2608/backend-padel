@@ -4,7 +4,7 @@
 import 'dotenv/config'
 import bcrypt from 'bcryptjs'
 import { connectDB, disconnectDB } from '../config/db.js'
-import { User, Court, ClassProgram, Tournament, Product, Reservation, ClassEnrollment, TournamentRegistration, Order } from '../models/index.js'
+import { User, Court, ClassProgram, Tournament, Product, Reservation, ClassEnrollment, ClassBooking, ClassSession, TournamentRegistration, Order } from '../models/index.js'
 import { courts, coaches, AGES, programs, tournaments, products } from './data.js'
 
 // Busca por nombre: si existe lo actualiza, si no lo crea
@@ -29,8 +29,8 @@ async function main() {
   await connectDB()
 
   // Crea las colecciones e índices (únicos, anti-reservas dobles…) aunque todavía estén vacías
-  for (const Model of [User, Court, Reservation, ClassProgram, ClassEnrollment, Tournament, TournamentRegistration, Product, Order]) {
-    await Model.syncIndexes()
+    for (const Model of [User, Court, Reservation, ClassProgram, ClassEnrollment, ClassBooking, ClassSession, Tournament, TournamentRegistration, Product, Order]) {
+  await Model.syncIndexes()
   }
 
   await seedAdmin()
