@@ -22,29 +22,28 @@ export const programs = [
   {
     name: 'Clases Regulares', type: 'Regular', color: '#1a73e8',
     description: 'Aprende las bases del pádel con ritmo constante. Ideal para quienes quieren progresar sin sacrificar su rutina.',
-    daysOfWeek: 'Lunes, Miércoles y Viernes', weekdays: [1, 3, 5],
+    daysOfWeek: 'Lunes, Miércoles y Viernes', weekdays: [1, 3, 5], hoursPerWeek: 8, sessionHours: 2,
     scheduleSlots: ['8:00 AM', '10:00 AM', '4:00 PM', '6:00 PM'],
     groups: [['valentina', 180000, 12], ['sofia', 200000, 10], ['carlos', 220000, 12]],
   },
   {
     name: 'Clases Intensivas', type: 'Intensiva', color: '#e53935',
-    daysOfWeek: 'Lunes a Sábado', weekdays: [1, 2, 3, 4, 5, 6],
     description: 'Programa de alto rendimiento para jugadores que quieren subir de nivel rápidamente con entrenamiento diario.',
-    
+    daysOfWeek: 'Lunes a Sábado', weekdays: [1, 2, 3, 4, 5, 6], hoursPerWeek: 12, sessionHours: 2,
     scheduleSlots: ['7:00 AM', '9:00 AM', '3:00 PM', '5:00 PM'],
     groups: [['valentina', 280000, 8], ['andres', 320000, 8], ['andres', 350000, 10]],
   },
   {
     name: 'Clases de Verano', type: 'Verano', color: '#f9a825',
     description: 'Aprovecha la temporada para iniciarte o perfeccionar tu juego. Ambiente dinámico y grupos reducidos.',
-    daysOfWeek: 'Martes, Jueves y Sábado', weekdays: [2, 4, 6],
+    daysOfWeek: 'Martes, Jueves y Sábado', weekdays: [2, 4, 6], hoursPerWeek: 10, sessionHours: 2,
     scheduleSlots: ['8:00 AM', '10:00 AM', '2:00 PM', '4:00 PM'],
     groups: [['valentina', 150000, 14], ['sofia', 170000, 12], ['carlos', 190000, 14]],
   },
   {
     name: 'Clases Fin de Semana', type: 'Fin de Semana', color: '#43a047',
     description: 'Para quienes trabajan entre semana. Clases concentradas el sábado y domingo para no perder el ritmo.',
-    daysOfWeek: 'Sábado y Domingo', weekdays: [6, 0],
+    daysOfWeek: 'Sábado y Domingo', weekdays: [6, 0], hoursPerWeek: 8, sessionHours: 4,
     scheduleSlots: ['9:00 AM', '11:00 AM', '3:00 PM', '5:00 PM'],
     groups: [['valentina', 160000, 10], ['sofia', 180000, 10], ['carlos', 200000, 12]],
   },

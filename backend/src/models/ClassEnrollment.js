@@ -6,7 +6,8 @@ const classEnrollmentSchema = new mongoose.Schema(
     program: { type: mongoose.Schema.Types.ObjectId, ref: 'ClassProgram', required: true },
     group: { type: mongoose.Schema.Types.ObjectId, required: true }, // _id del grupo dentro del programa
     schedule: { type: String, required: true }, // uno de program.scheduleSlots
-        partySize: { type: Number, enum: [2, 4], required: true }, // se juega en parejas
+    level: { type: String, required: true },
+    partySize: { type: Number, enum: [2, 4], required: true }, // se juega en parejas
     birthDate: { type: Date, required: true },
     status: { type: String, enum: ['ACTIVE', 'CANCELLED'], default: 'ACTIVE' },
   },
