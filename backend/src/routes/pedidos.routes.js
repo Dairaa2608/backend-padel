@@ -12,6 +12,7 @@ function createPedidosRouter(svc, requireAuth) {
   router.get('/mine', requireAuth, c.mine);
   router.post('/:id/pay', requireAuth, validate(z.object({ params: z.object({ id: objectId }) })), c.pay);
   router.get('/', requireAuth, requireRoles('admin'), c.listAll);
+  router.patch('/:id/status', requireAuth, requireRoles('admin'), validate(z.object({ params: z.object({ id: objectId }), body: z.object({ estado: z.string() }) })), c.updateStatus);
   return router;
 }
 module.exports = { createPedidosRouter };

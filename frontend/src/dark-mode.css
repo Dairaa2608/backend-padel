@@ -1,0 +1,423 @@
+/* ==========================================================================
+   PADELZONE - MODO OSCURO PURO & MINIMALISTA (TRUE DARK MODE)
+   Paleta: Deep Obsidian (#09090b / #121215) + Acentos sutiles
+   ========================================================================== */
+
+:root[data-theme="dark"],
+.dark-mode {
+  --dm-bg-pure: #09090b;
+  --dm-bg-surface: #111113;
+  --dm-bg-card: #151518;
+  --dm-bg-card-hover: #1b1b1f;
+  --dm-bg-input: #18181c;
+  --dm-border-subtle: rgba(255, 255, 255, 0.07);
+  --dm-border-hover: rgba(255, 255, 255, 0.16);
+  --dm-text-heading: #ffffff;
+  --dm-text-body: #a1a1aa;
+  --dm-text-muted: #71717a;
+  --dm-accent: #10b981;
+}
+
+/* Base global */
+[data-theme="dark"],
+[data-theme="dark"] body,
+[data-theme="dark"] #root {
+  background-color: var(--dm-bg-pure) !important;
+  color: var(--dm-text-body) !important;
+  color-scheme: dark;
+}
+
+/* Tipografía global */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] strong,
+[data-theme="dark"] .section-title {
+  color: var(--dm-text-heading) !important;
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] .section-title-wrapper p {
+  color: var(--dm-text-body);
+}
+
+[data-theme="dark"] .section-title::after {
+  background: var(--dm-accent) !important;
+  opacity: 0.8;
+}
+
+/* ==========================================================================
+   NAVBAR & FOOTER
+   ========================================================================== */
+[data-theme="dark"] nav.navbar-main {
+  background-color: #0c0c0e !important;
+  background: #0c0c0e !important;
+  border-bottom: 1px solid var(--dm-border-subtle) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-theme="dark"] .nav-dropdown-menu {
+  background-color: #121215 !important;
+  border: 1px solid var(--dm-border-hover) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="dark"] .nav-dropdown-item {
+  color: #d4d4d8 !important;
+  border-bottom-color: var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .nav-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .footer {
+  background-color: #070709 !important;
+  border-top: 1px solid var(--dm-border-subtle) !important;
+}
+
+/* ==========================================================================
+   BOTÓN TOGGLE MINIMALISTA (SWITCH SUTIL)
+   ========================================================================== */
+.btn-theme-minimal {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e4e4e7;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0 6px;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+
+.btn-theme-minimal:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+.btn-theme-minimal i {
+  font-size: 19px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.btn-theme-minimal:hover i {
+  transform: rotate(15deg);
+}
+
+/* ==========================================================================
+   CABECERAS DE SECCIÓN (HEADERS SIN GRADIENTES ESTRIDENTES)
+   ========================================================================== */
+[data-theme="dark"] .reservations-header,
+[data-theme="dark"] .courts-page-header,
+[data-theme="dark"] .clases-header,
+[data-theme="dark"] .tournaments-header,
+[data-theme="dark"] .tienda-header,
+[data-theme="dark"] .contact-header,
+[data-theme="dark"] .profile-header {
+  background: #0e0e11 !important;
+  border-bottom: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .reservations-header h1,
+[data-theme="dark"] .courts-page-header h1 {
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .reservations-header p,
+[data-theme="dark"] .courts-page-header p {
+  color: var(--dm-text-muted) !important;
+}
+
+/* ==========================================================================
+   HOME & COMPONENTES PÚBLICOS
+   ========================================================================== */
+[data-theme="dark"] .whyus-section,
+[data-theme="dark"] .services-section,
+[data-theme="dark"] .courts-section {
+  background-color: var(--dm-bg-pure) !important;
+}
+
+/* WhyUs Cards */
+[data-theme="dark"] .whyus-card-front,
+[data-theme="dark"] .whyus-card-back {
+  background-color: var(--dm-bg-card) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .whyus-icon-circle {
+  background-color: #1a1a20 !important;
+  border: 1px solid var(--dm-border-subtle);
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .whyus-header h2,
+[data-theme="dark"] .services-header h2,
+[data-theme="dark"] .courts-header h2 {
+  color: #ffffff !important;
+  border-bottom-color: var(--dm-border-subtle) !important;
+}
+
+/* Services Cards */
+[data-theme="dark"] .service-card {
+  background-color: var(--dm-bg-card) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .service-card:hover {
+  background-color: var(--dm-bg-card-hover) !important;
+  border-color: var(--dm-border-hover) !important;
+}
+
+[data-theme="dark"] .service-icon-box {
+  background-color: #1a1a20 !important;
+  color: #ffffff !important;
+}
+
+/* Courts Cards */
+[data-theme="dark"] .courts-page,
+[data-theme="dark"] .court-card,
+[data-theme="dark"] .courts-filter-bar {
+  background-color: var(--dm-bg-pure) !important;
+}
+
+[data-theme="dark"] .court-card,
+[data-theme="dark"] .courts-filter-bar {
+  background-color: var(--dm-bg-card) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .filter-btn {
+  background-color: #18181c !important;
+  color: var(--dm-text-body) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .filter-btn.active {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* ==========================================================================
+   RESERVAS
+   ========================================================================== */
+[data-theme="dark"] .reservations-page {
+  background-color: var(--dm-bg-pure) !important;
+}
+
+[data-theme="dark"] .res-form-card,
+[data-theme="dark"] .res-summary-card,
+[data-theme="dark"] .reservations-filter-card {
+  background-color: var(--dm-bg-card) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .res-summary-court,
+[data-theme="dark"] .res-summary-item,
+[data-theme="dark"] .res-summary-total {
+  background-color: var(--dm-bg-surface) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .res-hour-btn {
+  background-color: #18181c !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  color: #e4e4e7 !important;
+}
+
+[data-theme="dark"] .res-hour-btn:hover:not(.disabled) {
+  background-color: #27272a !important;
+  border-color: var(--dm-border-hover) !important;
+}
+
+[data-theme="dark"] .res-hour-btn.selected {
+  background-color: var(--dm-accent) !important;
+  color: #000000 !important;
+  font-weight: 700;
+  border-color: var(--dm-accent) !important;
+}
+
+/* ==========================================================================
+   TIENDA, CLASES Y TORNEOS
+   ========================================================================== */
+[data-theme="dark"] .tienda-page,
+[data-theme="dark"] .clases-page,
+[data-theme="dark"] .tournaments-page,
+[data-theme="dark"] .profile-page,
+[data-theme="dark"] .contact-page,
+[data-theme="dark"] .login-page,
+[data-theme="dark"] .register-page {
+  background-color: var(--dm-bg-pure) !important;
+}
+
+[data-theme="dark"] .producto-card,
+[data-theme="dark"] .clase-card,
+[data-theme="dark"] .tournament-card,
+[data-theme="dark"] .profile-card,
+[data-theme="dark"] .contact-card,
+[data-theme="dark"] .contact-info-card,
+[data-theme="dark"] .login-card,
+[data-theme="dark"] .register-card,
+[data-theme="dark"] .cart-drawer {
+  background-color: var(--dm-bg-card) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .categoria-btn {
+  background-color: #18181c !important;
+  color: var(--dm-text-body) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .categoria-btn.active {
+  background-color: #27272a !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* ==========================================================================
+   PANEL ADMINISTRATIVO (/admin)
+   ========================================================================== */
+[data-theme="dark"] .admin-container {
+  background-color: #060608 !important;
+}
+
+[data-theme="dark"] .admin-sidebar {
+  background-color: #0c0c0e !important;
+  border-right: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .admin-sidebar-header {
+  border-bottom: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .admin-main {
+  background-color: #060608 !important;
+}
+
+[data-theme="dark"] .admin-card,
+[data-theme="dark"] .metric-card {
+  background-color: var(--dm-bg-card) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5) !important;
+}
+
+[data-theme="dark"] .metric-icon {
+  background-color: #1d1d22 !important;
+  border: 1px solid var(--dm-border-subtle);
+}
+
+[data-theme="dark"] .admin-card-header {
+  border-bottom: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .admin-table th {
+  background-color: #111114 !important;
+  color: var(--dm-text-muted) !important;
+  border-bottom: 1px solid var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .admin-table td {
+  color: #e4e4e7 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-theme="dark"] .admin-table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+[data-theme="dark"] .admin-modal {
+  background-color: #121215 !important;
+  border: 1px solid var(--dm-border-hover) !important;
+  color: #ffffff !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-theme="dark"] .admin-modal-header,
+[data-theme="dark"] .admin-modal-footer {
+  border-color: var(--dm-border-subtle) !important;
+}
+
+[data-theme="dark"] .btn-admin-secondary {
+  background-color: #1d1d22 !important;
+  color: #e4e4e7 !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+}
+
+/* ==========================================================================
+   INPUTS, FORMULARIOS Y SELECTS MINIMALISTAS
+   ========================================================================== */
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="tel"],
+[data-theme="dark"] select,
+[data-theme="dark"] textarea,
+[data-theme="dark"] .admin-search-input {
+  background-color: var(--dm-bg-input) !important;
+  border: 1px solid var(--dm-border-subtle) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus,
+[data-theme="dark"] textarea:focus,
+[data-theme="dark"] .admin-search-input:focus {
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #52525b !important;
+}
+
+[data-theme="dark"] label,
+[data-theme="dark"] .form-label {
+  color: #d4d4d8 !important;
+}
+
+/* Badges minimalistas */
+[data-theme="dark"] .badge-status.cliente {
+  background-color: #27272a;
+  color: #e4e4e7;
+}
+
+[data-theme="dark"] .badge-status.pendiente {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .badge-status.confirmada,
+[data-theme="dark"] .badge-status.pagado,
+[data-theme="dark"] .badge-status.disponible {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+}
+
+[data-theme="dark"] .badge-status.cancelada {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}

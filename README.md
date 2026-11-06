@@ -1,88 +1,42 @@
-<<<<<<< HEAD
-# Pádel Backend API
-
-API REST para una plataforma de Pádel construida con Node.js, Express, TypeScript y MongoDB (Mongoose).
-
-## Requisitos
-- Node.js 18+
-- MongoDB en local o Atlas
-
-## Setup
-
-```bash
-npm install
-cp .env.example .env   # completar valores
-npm run dev            # desarrollo (tsx watch)
-npm run build && npm start   # producción
-```
-
-## Árbol del proyecto
-
-```
-src/
-├── config/          # env, db (Mongoose), jwt
-├── controllers/     # auth, user, court, booking, class, product, order
-├── middlewares/     # auth (protect/authorize), errorHandler, notFound,
-│                    # rateLimit, validate (express-validator)
-├── models/          # User, Court, Booking, Class, Enrollment, Product, Order
-├── routes/          # un router por módulo + index
-├── types/           # augmentations de Express Request
-├── utils/           # ApiError, ApiResponse, asyncHandler
-├── app.ts           # wiring de middlewares y rutas
-└── server.ts        # arranque, conexión a DB, graceful shutdown
-```
-
-## Endpoints (v1)
-
-| Módulo | Rutas |
-|---|---|
-| auth | `POST /auth/register` · `POST /auth/login` · `GET /auth/me` · `POST /auth/logout` |
-| users | `GET /users` (admin) · `GET/PUT/DELETE /users/:id` |
-| courts | `GET /courts` · `POST /courts` (admin) · `PUT/DELETE /courts/:id` (admin) |
-| bookings | `GET /bookings` · `POST /bookings` · `GET /bookings/:id` · `PATCH /bookings/:id/cancel` |
-| classes | `GET /classes` · `POST /classes` (admin/coach) · `POST/DELETE /classes/:id/enroll` |
-| products | `GET /products` · `GET /products/:id` · `POST/PUT/DELETE` (admin) |
-| orders | `GET /orders` · `POST /orders` · `GET /orders/:id` · `PATCH /orders/:id/status` (admin) |
-
-## Seguridad
-- Helmet, CORS restringido a `CLIENT_URL`, `hpp`, `express-mongo-sanitize`
-- Rate limiting global (`/api`) y estricto en `/auth`
-- JWT Bearer, bcrypt (12 rounds), validación con express-validator
-- Manejo centralizado de errores sin stack trace en producción
-# usco-cc-backend-padel_zone
-=======
 # PadelZone
 
-Proyecto final - PadelZone (Front + Backend)
+Proyecto final: aplicación web de pádel con frontend React y API REST en Node.js, Express y MongoDB (Mongoose).
 
-## Estructura
-- `frontend/` - React + Vite (sin cambios de diseño/rutas)
-- `backend/` - Node.js + Express + Mongoose + JWT
+## Requisitos
 
-## Base de datos
-Usa MongoDB local en `club_deportivo` (URI: `mongodb://localhost:27017/club_deportivo`).
+- Node.js 20 o superior.
+- MongoDB local o una base de datos en MongoDB Atlas.
 
 ## Backend
+
 ```bash
 cd backend
-cp .env.example .env  # revisar
 npm install
+cp .env.example .env
+# Edita .env: configura MONGODB_URI y cambia JWT_SECRET por una clave propia
 npm run dev
 ```
 
-API: `http://localhost:3000/api` (health: `/api/health`)
+El servidor usa `MONGODB_URI` y `JWT_SECRET` del archivo `backend/.env`. La clave JWT debe tener al menos 16 caracteres. Para Atlas, usa la URI de conexión proporcionada por Atlas. No compartas ni subas `.env` al repositorio.
+
+API: `http://localhost:3000/api`
+
+Health check: `http://localhost:3000/api/health`
 
 ## Frontend
+
 ```bash
 cd frontend
-cp .env.example .env  # VITE_API_URL
 npm install
+cp .env.example .env
 npm run dev
 ```
+
+La variable `VITE_API_URL` configura la URL de la API; el valor de ejemplo es `http://localhost:3000`.
 
 App: `http://localhost:5173`
 
 ## Scripts
-- Backend: `npm run dev` / `npm start` / `npm run crear-db`
-- Frontend: `npm run dev` / `npm run build` / `npm run preview`
->>>>>>> 3fc613a (primer commit)
+
+- Backend: `npm run dev`, `npm start`, `npm run crear-db`.
+- Frontend: `npm run dev`, `npm run build`, `npm run lint`, `npm run preview`.

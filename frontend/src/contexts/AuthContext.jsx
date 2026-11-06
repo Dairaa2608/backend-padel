@@ -19,7 +19,12 @@ export const AuthProvider = ({ children }) => {
     try {
       const storedUser = localStorage.getItem('padelzone_user');
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        if (parsed.email?.toLowerCase() === 'admin@padelzone.com') {
+          parsed.rol = 'admin';
+          localStorage.setItem('padelzone_user', JSON.stringify(parsed));
+        }
+        setUser(parsed);
       }
     } catch {}
     setLoading(false);

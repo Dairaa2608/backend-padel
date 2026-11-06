@@ -198,3 +198,13 @@ nav ul li:last-child {
   font-size: 1.1rem;
   opacity: 0.8;
 }
+
+.nav-actions-mobile {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}

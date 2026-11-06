@@ -100,10 +100,10 @@ class ReservaService {
     return out;
   }
 
-  async cancel(id, userId) {
+  async cancel(id, userId, userRole) {
     const r = await Reserva.findById(id);
     if (!r) throw new AppError('Reserva no encontrada', 404);
-    if (String(r.usuario_id) !== String(userId)) throw new AppError('No autorizado', 403);
+    if (userRole !== 'admin' && String(r.usuario_id) !== String(userId)) throw new AppError('No autorizado', 403);
     r.estado = 'cancelada';
     await r.save();
     return { id: String(r._id), estado: r.estado };
@@ -111,7 +111,25 @@ class ReservaService {
 
   async listAll() {
     const list = await Reserva.find({}).sort({ fecha_creacion: -1 }).lean();
-    return list;
+    const out = [];
+    for (const r of list) {
+      const cancha = r.cancha_id ? await this.canchas.findById(r.cancha_id).lean() : null;
+      const usuario = r.usuario_id ? await mongoose.model('Usuario').findById(r.usuario_id).select('nombre email telefono').lean() : null;
+      out.push({
+        id: String(r._id),
+        court: cancha?.nombre || 'Cancha',
+        courtId: cancha ? String(cancha._id) : null,
+        courtType: cancha?.tipo,
+        user: usuario ? { id: String(usuario._id), nombre: usuario.nombre, email: usuario.email, telefono: usuario.telefono } : null,
+        date: r.fecha,
+        startHour: r.hora_inicio,
+        endHour: r.hora_fin,
+        total: r.precio,
+        estado: r.estado,
+        createdAt: r.fecha_creacion,
+      });
+    }
+    return out;
   }
 }
 

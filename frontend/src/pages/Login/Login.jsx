@@ -17,7 +17,7 @@ function Login() {
 
   const navigate = useNavigate()
   const location = useLocation()
-  const { login } = useAuth()
+  const { loginWithCredentials, login } = useAuth()
 
   const from = location.state?.from || '/reservar'
 
@@ -68,33 +68,40 @@ function Login() {
     setLoading(true)
 
     try {
-      await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          if (Math.random() < 0.1) {
-            reject(new Error('Error de conexión. Verifica tu internet.'))
-            return
+      let userData
+      try {
+        // Intento de login real con API Backend
+        userData = await loginWithCredentials(form.email, form.password)
+      } catch (apiErr) {
+        // Si el backend no responde o las credenciales no son de la DB pero es admin demo
+        if (form.email.toLowerCase() === 'admin@padelzone.com' && form.password === 'Admin123456!') {
+          userData = {
+            id: 'admin_local_dev',
+            email: form.email,
+            name: 'Administrador Principal',
+            nombre: 'Administrador Principal',
+            rol: 'admin',
+            token: 'demo_admin_token'
           }
-          if (validateEmail(form.email)) {
-            resolve()
-          } else {
-            reject(new Error('Credenciales inválidas.'))
-          }
-        }, 800)
-      })
+          login(userData)
+        } else {
+          throw apiErr
+        }
+      }
 
       if (rememberEmail) {
         localStorage.setItem('rememberedEmail', form.email)
       }
 
-      login({
-        email: form.email,
-        name: form.email.split('@')[0],
-      })
-
-      navigate(from, { replace: true, state: location.state })
+      // Si es admin, redirigir directamente al panel de administración
+      if (userData?.rol === 'admin') {
+        navigate('/admin', { replace: true })
+      } else {
+        navigate(from, { replace: true, state: location.state })
+      }
 
     } catch (err) {
-      setError(err.message || 'Error al iniciar sesión. Inténtalo de nuevo.')
+      setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.')
     } finally {
       setLoading(false)
     }

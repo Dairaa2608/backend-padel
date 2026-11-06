@@ -124,7 +124,31 @@ class PedidoService {
   }
 
   async listAll() {
-    return Pedido.find({}).sort({ fecha_creacion: -1 }).lean();
+    const list = await Pedido.find({}).sort({ fecha_creacion: -1 }).lean();
+    const out = [];
+    for (const ped of list) {
+      const usuario = ped.usuario_id ? await mongoose.model('Usuario').findById(ped.usuario_id).select('nombre email telefono').lean() : null;
+      const items = await PedidoItem.find({ pedido_id: ped._id }).lean();
+      const dom = await Domicilio.findOne({ pedido_id: ped._id }).lean();
+      const fac = await Factura.findOne({ pedido_id: ped._id }).lean();
+      out.push({
+        id: String(ped._id),
+        ...ped,
+        user: usuario ? { id: String(usuario._id), nombre: usuario.nombre, email: usuario.email, telefono: usuario.telefono } : null,
+        items,
+        domicilio: dom,
+        factura: fac,
+      });
+    }
+    return out;
+  }
+
+  async updateStatus(pedidoId, estado) {
+    const p = await Pedido.findById(pedidoId);
+    if (!p) throw new AppError('Pedido no encontrado', 404);
+    p.estado = estado;
+    await p.save();
+    return { id: String(p._id), estado: p.estado };
   }
 }
 
