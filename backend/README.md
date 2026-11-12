@@ -84,7 +84,7 @@ Cuando alguien se registra, la API le envía un correo de bienvenida desde una c
 2. Entra a <https://myaccount.google.com/apppasswords>, crea una contraseña de aplicación llamada "PadelZone" y copia las 16 letras.
 3. En `backend/.env` añade `MAIL_USER="correo@gmail.com"` y `MAIL_PASS="las 16 letras"`, y reinicia la API.
 
-Si no se configuran, el registro funciona igual pero no se envía el correo (la consola lo avisa).
+Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no llega a ninguna bandeja, pero en la consola de la API aparece `✉️ Correo de prueba para ... → ábrelo aquí: https://ethereal.email/message/...`. Abre ese enlace para ver el correo. El registro nunca falla por culpa del correo.
 
 ## Scripts
 
