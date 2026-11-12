@@ -5,7 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import './Navbar.css'
 
 function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, isAdmin, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [servicesOpen, setServicesOpen] = useState(false)
@@ -85,6 +85,27 @@ function Navbar() {
           </li>
 
           <li><Link to="/contacto">Contacto</Link></li>
+          {(isAdmin || user?.role === 'ADMIN' || user?.rol === 'admin') && (
+            <li>
+              <Link to="/admin" style={{
+                background: '#ff9800',
+                color: '#1a2238',
+                borderRadius: '6px',
+                padding: '0 12px',
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                lineHeight: '34px',
+                height: '34px',
+                marginTop: '15px',
+                boxShadow: '0 2px 6px rgba(255, 152, 0, 0.4)'
+              }}>
+                <i className="material-icons" style={{ fontSize: '18px' }}>admin_panel_settings</i>
+                Panel Admin
+              </Link>
+            </li>
+          )}
           <li>
             <button
               className="btn-theme-minimal"
