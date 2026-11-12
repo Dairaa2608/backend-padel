@@ -682,3 +682,136 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── Calendario de clases ── */
+.calendario {
+  border: 1.5px solid #e6e8f0;
+  border-radius: 14px;
+  padding: 12px;
+  background: #fff;
+}
+
+.calendario-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.calendario-mes {
+  font-weight: 700;
+  color: #010231;
+}
+
+.calendario-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: #f0f1f8;
+  color: #010231;
+  cursor: pointer;
+}
+
+.calendario-nav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendario-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendario-semana {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #888;
+  padding: 4px 0;
+}
+
+.calendario-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 4px 2px;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  background: #f1f1f1;
+  color: #b0b0b0;
+  cursor: not-allowed;
+}
+
+.calendario-numero {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.1;
+}
+
+.calendario-dia small {
+  font-size: 0.65rem;
+  line-height: 1.1;
+}
+
+/* Día con clase y con cupo: se puede elegir */
+.calendario-dia.disponible {
+  background: #e8f5e9;
+  border-color: #a5d6a7;
+  color: #1b5e20;
+  cursor: pointer;
+}
+
+.calendario-dia.disponible:hover {
+  border-color: #2e7d32;
+}
+
+/* Día con clase pero lleno (o sin cupo para todas las personas): gris */
+.calendario-dia.lleno {
+  background: #eceff1;
+  color: #9e9e9e;
+  text-decoration: line-through;
+}
+
+.calendario-dia.lleno small {
+  text-decoration: none;
+}
+
+/* Día elegido */
+.calendario-dia.activo {
+  background: #010231;
+  border-color: #010231;
+  color: #fff;
+}
+
+.calendario-leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: #666;
+}
+
+.calendario-leyenda span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.punto {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.punto.disponible { background: #a5d6a7; }
+.punto.lleno { background: #cfd8dc; }
+.punto.sin-clase { background: #f1f1f1; border: 1px solid #ddd; }
