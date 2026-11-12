@@ -628,3 +628,57 @@
     text-align: center;
     color: #555;
 }
+/* Días disponibles como botones (en vez de un calendario libre) */
+.dias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.dia-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border: 1.5px solid #ddd;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.dia-btn small {
+  color: #2e7d32;
+}
+
+.dia-btn.activo {
+  border-color: #010231;
+  background: #010231;
+  color: #fff;
+}
+
+.dia-btn.activo small {
+  color: #c8e6c9;
+}
+
+.dia-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dia-btn:disabled small {
+  color: #c62828;
+}
+
+.dias-cargando,
+.personas-ayuda {
+  display: block;
+  margin-top: 6px;
+  color: #777;
+  font-size: 0.85rem;
+}
+
+.personas-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

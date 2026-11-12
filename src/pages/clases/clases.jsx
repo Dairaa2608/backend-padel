@@ -31,6 +31,12 @@ const LEVELS = ['Principiante', 'Intermedio', 'Avanzado']
 const PARTY_SIZES = [1, 2, 4] // el pádel se juega en parejas: nunca 3
 const MONTHLY_PARTY_SIZES = [2, 4]
 
+// "2026-11-16" → "Lun, 16 de nov"
+const dateLabel = (date) => {
+  const label = new Date(`${date}T12:00:00`).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric', month: 'short' })
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 const ageLabel = (g) => (g.maxAge === null ? `${g.minAge} años en adelante` : `${g.minAge} - ${g.maxAge} años`)
 const peopleLabel = (n) => `${n} persona${n > 1 ? 's' : ''}`
 
@@ -79,7 +85,6 @@ function Clases() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
 
-  const [personas, setPersonas] = useState(2)
   const [activeTab, setActiveTab] = useState('active')
   const [misInscripciones, setMisInscripciones] = useState([])
   const [misClasesSueltas, setMisClasesSueltas] = useState([])
@@ -89,9 +94,9 @@ function Clases() {
   // Modal de inscripción mensual o clase suelta
   const [modal, setModal] = useState(null) // { mode: 'MONTHLY' | 'SINGLE', clase, grupo }
   const [step, setStep] = useState('form')
-  const [form, setForm] = useState({ nivel: '', fechaNacimiento: '', horario: '', fecha: '' })
+  const [form, setForm] = useState({ nivel: '', fechaNacimiento: '', horario: '', fecha: '', personas: 2 })
   const [formError, setFormError] = useState('')
-  const [dayInfo, setDayInfo] = useState(null) // cupos del día elegido (clase suelta)
+  const [fechas, setFechas] = useState([]) // próximos días con clase: [{ date, spotsLeft }]
   const [payment, setPayment] = useState(emptyPayment)
   const [sending, setSending] = useState(false)
 
@@ -100,7 +105,7 @@ function Clases() {
   const [showCourtesy, setShowCourtesy] = useState(() => Boolean(location.state?.openCourtesy))
   const [courtesy, setCourtesy] = useState({ cedula: '', programId: '', groupId: '', fecha: '', horario: '', personas: 1 })
   const [courtesyError, setCourtesyError] = useState('')
-  const [courtesyDayInfo, setCourtesyDayInfo] = useState(null)
+  const [courtesyFechas, setCourtesyFechas] = useState([])
 
   /* ── Carga de datos ─────────────────────────────────── */
 
@@ -144,29 +149,30 @@ function Clases() {
       return
     }
     setModal({ mode, clase, grupo })
-    setForm({ nivel: '', fechaNacimiento: '', horario: clase.horarios[0], fecha: '' })
+    setForm({ nivel: '', fechaNacimiento: '', horario: clase.horarios[0], fecha: '', personas: mode === 'MONTHLY' ? 2 : 1 })
     setPayment(emptyPayment)
     setFormError('')
-    setDayInfo(null)
+    setFechas([])
     setStep('form')
+    // Para la clase suelta se piden los próximos días con clase de ese grupo
+    if (mode === 'SINGLE') {
+      api.getClassDates(clase.id, grupo.id)
+        .then((data) => setFechas(data.dates))
+        .catch((err) => setFormError(err.message))
+    }
   }
 
   const closeModal = () => setModal(null)
 
-  // Al elegir la fecha de una clase suelta se consultan los cupos de ese día
-  const handleDateChange = async (fecha) => {
-    setForm((p) => ({ ...p, fecha }))
-    setDayInfo(null)
-    if (!fecha) return
-    try {
-      setDayInfo(await api.getClassDayAvailability(modal.clase.id, modal.grupo.id, fecha))
-    } catch (err) {
-      setFormError(err.message)
-    }
+  // Si cambia el número de personas y el día elegido ya no tiene cupo para todas, se quita
+  const changePersonas = (n) => {
+    const elegido = fechas.find((f) => f.date === form.fecha)
+    setForm((p) => ({ ...p, personas: n, fecha: elegido && elegido.spotsLeft < n ? '' : p.fecha }))
+    setFormError('')
   }
 
   const totalModal = modal
-    ? modal.mode === 'MONTHLY' ? modal.grupo.precio * personas : precioSuelta[personas]
+    ? modal.mode === 'MONTHLY' ? modal.grupo.precio * form.personas : precioSuelta[form.personas]
     : 0
 
   const handleNextStep = () => {
@@ -174,19 +180,13 @@ function Clases() {
       setFormError('Completa tu nivel, fecha de nacimiento y horario.')
       return
     }
-    if (modal.mode === 'SINGLE') {
-      if (!form.fecha || !form.horario) {
-        setFormError('Elige la fecha y el horario de la clase.')
-        return
-      }
-      if (dayInfo && !dayInfo.validDay) {
-        setFormError(`Ese día no hay clase. Este programa es: ${dayInfo.daysOfWeek}`)
-        return
-      }
-      if (dayInfo && dayInfo.spotsLeft < personas) {
-        setFormError(`Ese día solo quedan ${dayInfo.spotsLeft} cupos en este grupo.`)
-        return
-      }
+    if (modal.mode === 'MONTHLY' && modal.grupo.cuposLibres < form.personas) {
+      setFormError(`Este grupo solo tiene ${modal.grupo.cuposLibres} cupos libres.`)
+      return
+    }
+    if (modal.mode === 'SINGLE' && (!form.fecha || !form.horario)) {
+      setFormError('Elige el día y el horario de la clase.')
+      return
     }
     setFormError('')
     setStep('payment')
@@ -205,12 +205,12 @@ function Clases() {
       if (mode === 'MONTHLY') {
         await api.enrollInClass({
           programId: clase.id, groupId: grupo.id, schedule: form.horario,
-          level: form.nivel, birthDate: form.fechaNacimiento, partySize: personas,
+          level: form.nivel, birthDate: form.fechaNacimiento, partySize: form.personas,
         })
       } else {
         await api.bookClass({
           type: 'SINGLE', programId: clase.id, groupId: grupo.id,
-          date: form.fecha, schedule: form.horario, partySize: personas,
+          date: form.fecha, schedule: form.horario, partySize: form.personas,
         })
       }
       await loadData()
@@ -239,21 +239,28 @@ function Clases() {
 
   const courtesyProgram = programas.find((p) => p.id === courtesy.programId)
 
-  const updateCourtesy = async (changes) => {
+  const updateCourtesy = (changes) => {
     const next = { ...courtesy, ...changes }
     if (changes.programId !== undefined) {
-      Object.assign(next, { groupId: '', horario: '' })
+      Object.assign(next, { groupId: '', horario: '', fecha: '' })
+      setCourtesyFechas([])
+    }
+    if (changes.groupId !== undefined) {
+      next.fecha = ''
+      setCourtesyFechas([])
+      if (next.programId && next.groupId) {
+        api.getClassDates(next.programId, next.groupId)
+          .then((data) => setCourtesyFechas(data.dates))
+          .catch((err) => setCourtesyError(err.message))
+      }
+    }
+    // Si cambia el número de personas y el día elegido ya no tiene cupo, se quita
+    if (changes.personas !== undefined) {
+      const elegido = courtesyFechas.find((f) => f.date === next.fecha)
+      if (elegido && elegido.spotsLeft < changes.personas) next.fecha = ''
     }
     setCourtesy(next)
     setCourtesyError('')
-    setCourtesyDayInfo(null)
-    if (next.programId && next.groupId && next.fecha) {
-      try {
-        setCourtesyDayInfo(await api.getClassDayAvailability(next.programId, next.groupId, next.fecha))
-      } catch (err) {
-        setCourtesyError(err.message)
-      }
-    }
   }
 
   const handleCourtesySubmit = async () => {
@@ -263,7 +270,7 @@ function Clases() {
       return
     }
     if (!programId || !groupId || !fecha || !horario) {
-      setCourtesyError('Elige el programa, el grupo, la fecha y el horario.')
+      setCourtesyError('Elige el programa, el grupo, el horario y el día.')
       return
     }
     setSending(true)
@@ -275,6 +282,7 @@ function Clases() {
       await loadData()
       setShowCourtesy(false)
       setCourtesy({ cedula: '', programId: '', groupId: '', fecha: '', horario: '', personas: 1 })
+      setCourtesyFechas([])
       showToast('¡Tu clase de cortesía está confirmada! 🎾')
     } catch (err) {
       // Si la cédula o la cuenta ya usaron su cortesía, la API lo rechaza
@@ -360,23 +368,6 @@ function Clases() {
           </div>
         )}
 
-        {/* Filtro: para cuántas personas */}
-        {activeTab === 'active' && !loading && (
-          <div className="personas-filtro">
-            <span>¿Cuántas personas vienen?</span>
-            {PARTY_SIZES.map((n) => (
-              <button
-                key={n}
-                className={`personas-btn ${personas === n ? 'activo' : ''}`}
-                onClick={() => setPersonas(n)}
-              >
-                {n}
-              </button>
-            ))}
-            <small>El pádel se juega en parejas: 1, 2 o 4 personas.</small>
-          </div>
-        )}
-
         {activeTab === 'active' && programas.map(clase => (
           <div className="clase-card" key={clase.id}>
             <div className="clase-card-imagen">
@@ -398,10 +389,10 @@ function Clases() {
 
               <div className="clase-grupos">
                 {clase.grupos.map(grupo => {
-                  const caben = grupo.cuposLibres >= personas
-                  const mensualPermitido = MONTHLY_PARTY_SIZES.includes(personas)
+                  const lleno = grupo.cuposLibres === 0
+                  const mensualPosible = grupo.cuposLibres >= Math.min(...MONTHLY_PARTY_SIZES)
                   return (
-                    <div className={`clase-grupo ${caben ? '' : 'sin-cupo'}`} key={grupo.id}>
+                    <div className={`clase-grupo ${lleno ? 'sin-cupo' : ''}`} key={grupo.id}>
                       <div className="grupo-header">
                         <span className="grupo-edad">
                           <i className="material-icons">group</i>
@@ -429,31 +420,26 @@ function Clases() {
                             }}
                           />
                         </div>
-                        {!caben && (
-                          <small className="grupo-aviso">Sin cupo para {peopleLabel(personas)}</small>
-                        )}
+                        {lleno && <small className="grupo-aviso">Grupo lleno</small>}
                       </div>
 
                       <button
                         className="btn-inscribir"
                         style={{ backgroundColor: clase.color }}
-                        disabled={!caben || !mensualPermitido}
-                        title={!mensualPermitido ? 'La inscripción mensual es para 2 o 4 personas' : ''}
+                        disabled={!mensualPosible}
                         onClick={() => openModal('MONTHLY', clase, grupo)}
                       >
                         <i className="material-icons">how_to_reg</i>
-                        {mensualPermitido
-                          ? `Inscripción mensual · ${formatPrice(grupo.precio * personas)}`
-                          : 'Mensual: solo 2 o 4 personas'}
+                        Inscripción mensual · {formatPrice(grupo.precio)} c/u
                       </button>
                       <button
                         className="btn-suelta"
                         style={{ color: clase.color, borderColor: clase.color }}
-                        disabled={!caben}
+                        disabled={lleno}
                         onClick={() => openModal('SINGLE', clase, grupo)}
                       >
                         <i className="material-icons">event</i>
-                        Clase suelta · {formatPrice(precioSuelta[personas])}
+                        Clase suelta · desde {formatPrice(precioSuelta[1])}
                       </button>
                     </div>
                   )
@@ -520,7 +506,7 @@ function Clases() {
                       <h6>{b.program?.name}</h6>
                       <div className="my-reg-detail">
                         <i className="material-icons">calendar_today</i>
-                        <span>{b.date} · {b.schedule}</span>
+                        <span>{dateLabel(b.date)} · {b.schedule}</span>
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">group</i>
@@ -593,21 +579,25 @@ function Clases() {
                 </div>
 
                 <div className="tournament-form-field">
-                  <label>Personas</label>
-                  <input type="text" value={peopleLabel(personas)} disabled />
+                  <label>¿Cuántas personas vienen?</label>
+                  <PersonasSelector
+                    opciones={modal.mode === 'MONTHLY' ? MONTHLY_PARTY_SIZES : PARTY_SIZES}
+                    value={form.personas}
+                    onChange={changePersonas}
+                    disabledIf={(n) => modal.mode === 'MONTHLY' && n > modal.grupo.cuposLibres}
+                  />
+                  <small className="personas-ayuda">
+                    {modal.mode === 'MONTHLY'
+                      ? `Se juega en parejas: 2 o 4 personas · ${formatPrice(modal.grupo.precio)} por persona al mes`
+                      : `1 persona ${formatPrice(precioSuelta[1])} · 2 personas ${formatPrice(precioSuelta[2])} · 4 personas ${formatPrice(precioSuelta[4])}`}
+                  </small>
                 </div>
 
                 {modal.mode === 'SINGLE' && (
                   <div className="tournament-form-field">
-                    <label>Fecha de la clase ({modal.clase.diasSemana})</label>
-                    <input type="date" min={todayString()} value={form.fecha} onChange={e => handleDateChange(e.target.value)} />
-                    {dayInfo && (
-                      <small className={dayInfo.validDay && dayInfo.spotsLeft >= personas ? 'dia-ok' : 'dia-error'}>
-                        {!dayInfo.validDay
-                          ? `Ese día no hay clase. Este programa es: ${dayInfo.daysOfWeek}`
-                          : `Cupos libres ese día: ${dayInfo.spotsLeft}`}
-                      </small>
-                    )}
+                    <label>Elige el día ({modal.clase.diasSemana})</label>
+                    <DiasDisponibles fechas={fechas} value={form.fecha} personas={form.personas}
+                      onChange={(fecha) => setForm(p => ({ ...p, fecha }))} />
                   </div>
                 )}
 
@@ -658,12 +648,12 @@ function Clases() {
 
                 <div className="payment-summary">
                   <div className="payment-summary-row">
-                    <span>{modal.mode === 'MONTHLY' ? 'Inscripción mensual' : `Clase suelta · ${form.fecha}`}</span>
+                    <span>{modal.mode === 'MONTHLY' ? 'Inscripción mensual' : `Clase suelta · ${dateLabel(form.fecha)}`}</span>
                     <span>{modal.clase.nombre}</span>
                   </div>
                   <div className="payment-summary-row">
                     <span>Personas</span>
-                    <span>{personas}</span>
+                    <span>{form.personas}</span>
                   </div>
                   <div className="payment-summary-row total">
                     <span>Total</span>
@@ -820,32 +810,21 @@ function Clases() {
               )}
 
               <div className="tournament-form-field">
-                <label>Fecha {courtesyProgram ? `(${courtesyProgram.diasSemana})` : ''}</label>
-                <input type="date" min={todayString()} value={courtesy.fecha} onChange={e => updateCourtesy({ fecha: e.target.value })} />
-                {courtesyDayInfo && (
-                  <small className={courtesyDayInfo.validDay && courtesyDayInfo.spotsLeft >= courtesy.personas ? 'dia-ok' : 'dia-error'}>
-                    {!courtesyDayInfo.validDay
-                      ? `Ese día no hay clase. Este programa es: ${courtesyDayInfo.daysOfWeek}`
-                      : `Cupos libres ese día: ${courtesyDayInfo.spotsLeft}`}
-                  </small>
-                )}
+                <label>¿Cuántas personas vienen?</label>
+                <PersonasSelector
+                  opciones={PARTY_SIZES}
+                  value={courtesy.personas}
+                  onChange={(n) => updateCourtesy({ personas: n })}
+                />
               </div>
 
-              <div className="tournament-form-field">
-                <label>¿Cuántas personas vienen?</label>
-                <div className="personas-filtro compacto">
-                  {PARTY_SIZES.map(n => (
-                    <button
-                      key={n}
-                      type="button"
-                      className={`personas-btn ${courtesy.personas === n ? 'activo' : ''}`}
-                      onClick={() => updateCourtesy({ personas: n })}
-                    >
-                      {n}
-                    </button>
-                  ))}
+              {courtesy.groupId && (
+                <div className="tournament-form-field">
+                  <label>Elige el día ({courtesyProgram?.diasSemana})</label>
+                  <DiasDisponibles fechas={courtesyFechas} value={courtesy.fecha} personas={courtesy.personas}
+                    onChange={(fecha) => updateCourtesy({ fecha })} />
                 </div>
-              </div>
+              )}
 
               <button className="tournament-modal-btn" onClick={handleCourtesySubmit} disabled={sending}>
                 <i className="material-icons">{sending ? 'hourglass_empty' : 'card_giftcard'}</i>
@@ -882,6 +861,51 @@ function Clases() {
           {toast}
         </div>
       )}
+    </div>
+  )
+}
+
+// Botones redondos 1 / 2 / 4
+function PersonasSelector({ opciones, value, onChange, disabledIf = () => false }) {
+  return (
+    <div className="personas-filtro compacto">
+      {opciones.map((n) => (
+        <button
+          key={n}
+          type="button"
+          className={`personas-btn ${value === n ? 'activo' : ''}`}
+          disabled={disabledIf(n)}
+          onClick={() => onChange(n)}
+        >
+          {n}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Solo los próximos días con clase, con sus cupos. Los que no tienen sitio salen desactivados.
+function DiasDisponibles({ fechas, value, personas, onChange }) {
+  if (fechas.length === 0) {
+    return <p className="dias-cargando">Cargando días disponibles…</p>
+  }
+  return (
+    <div className="dias-grid">
+      {fechas.map(({ date, spotsLeft }) => {
+        const caben = spotsLeft >= personas
+        return (
+          <button
+            key={date}
+            type="button"
+            className={`dia-btn ${value === date ? 'activo' : ''}`}
+            disabled={!caben}
+            onClick={() => onChange(date)}
+          >
+            <strong>{dateLabel(date)}</strong>
+            <small>{spotsLeft === 0 ? 'Lleno' : `${caben ? '' : 'Solo '}${spotsLeft} cupo${spotsLeft === 1 ? '' : 's'}`}</small>
+          </button>
+        )
+      })}
     </div>
   )
 }

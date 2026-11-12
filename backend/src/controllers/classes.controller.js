@@ -2,7 +2,7 @@ import { ClassProgram, ClassEnrollment, ClassBooking, ClassSession } from '../mo
 import { availabilityQuerySchema, SINGLE_CLASS_PRICES } from '../schemas/class.schemas.js'
 import { AppError } from '../utils/AppError.js'
 import { hashCedula } from '../utils/cedula.js'
-import { isPast, weekdayOf, hourFromSlot } from '../utils/dates.js'
+import { isPast, weekdayOf, hourFromSlot, todayInColombia } from '../utils/dates.js'
 
 /* ── Ayudas ─────────────────────────────────────────── */
 
@@ -67,6 +67,32 @@ export async function getDayAvailability(req, res) {
   const validDay = program.weekdays.includes(weekdayOf(date))
   res.json({
     data: { date, validDay, daysOfWeek: program.daysOfWeek, spotsLeft: validDay ? await daySpotsLeft(group, date) : 0 },
+  })
+}
+
+// GET /api/classes/:programId/groups/:groupId/dates → próximos días con clase y sus cupos.
+// Así la página muestra solo los días disponibles en vez de un calendario libre.
+export async function listUpcomingDates(req, res) {
+  const { program, group } = await findProgramAndGroup(req.params.programId, req.params.groupId)
+  const DAYS_AHEAD = 21 // las próximas 3 semanas
+
+  const dates = []
+  const day = new Date(`${todayInColombia()}T12:00:00Z`)
+  for (let i = 0; i < DAYS_AHEAD; i++) {
+    const date = day.toISOString().slice(0, 10)
+    if (program.weekdays.includes(weekdayOf(date))) dates.push(date)
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+
+  // Una sola consulta para los cupos ocupados de todos esos días
+  const sessions = await ClassSession.find({ group: group._id, date: { $in: dates } })
+  const booked = Object.fromEntries(sessions.map((s) => [s.date, s.booked]))
+
+  res.json({
+    data: {
+      daysOfWeek: program.daysOfWeek,
+      dates: dates.map((date) => ({ date, spotsLeft: Math.max(monthlySpotsLeft(group) - (booked[date] ?? 0), 0) })),
+    },
   })
 }
 

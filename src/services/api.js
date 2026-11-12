@@ -18,13 +18,6 @@ const _products = [
   { id: 6, name: 'Grip Antideslizante Premium',desc: 'Pack de 3 grips antideslizantes de alta adherencia. Reducen la vibración.',               price:  22000, badge: 'Agotado',  badgeColor: '#757575', img: imgGrip },
 ]
 
-const _clases = [
-  { id: 1, nombre: 'Clases Regulares',  desc: 'Entrenamiento semanal todos los niveles.', precio: 180000, modalidad: 'Pago mensual' },
-  { id: 2, nombre: 'Clases Intensivas', desc: 'Programa de mejora acelerada en 8 semanas.', precio: 280000, modalidad: 'Programa completo' },
-  { id: 3, nombre: 'Clases para Niños',desc: 'Iniciación para menores de 12 años.', precio: 120000, modalidad: 'Pago mensual' },
-  { id: 4, nombre: 'Torneo de Verano', desc: 'Torneo estacional con premios.', precio: 80000, modalidad: 'Por inscripción' },
-]
-
 const _torneos = [
   { id: 1, nombre: 'Torneo Amateur', fecha: '2026-06-15', lugar: 'PadelZone Central', categoria: 'Amateur' },
   { id: 2, nombre: 'Copa PadelZone', fecha: '2026-07-20', lugar: 'PadelZone Premium', categoria: 'Profesional' },
@@ -243,16 +236,16 @@ class Api {
   cancelReservation(id) {
     return request(`/reservations/${id}/cancel`, { method: 'PATCH' })
   }
-    /* ── CLASES (API real) ─────────────────── */
+  /* ── CLASES (API real) ─────────────────── */
 
   /** GET /api/classes — programas, grupos con cupos libres y precios de la clase suelta */
   getClasses() {
     return request('/classes')
   }
 
-  /** GET /api/classes/:programId/groups/:groupId/availability?date= — cupos de un grupo ese día */
-  getClassDayAvailability(programId, groupId, date) {
-    return request(`/classes/${programId}/groups/${groupId}/availability?date=${date}`)
+  /** GET /api/classes/:programId/groups/:groupId/dates — próximos días con clase y sus cupos */
+  getClassDates(programId, groupId) {
+    return request(`/classes/${programId}/groups/${groupId}/dates`)
   }
 
   /** POST /api/classes/enrollments — inscripción mensual (2 o 4 personas) */
@@ -288,7 +281,6 @@ class Api {
   cancelClassBooking(id) {
     return request(`/classes/bookings/${id}/cancel`, { method: 'PATCH' })
   }
-
 
   /* ── TORNEOS ───────────────────────────── */
 
