@@ -198,3 +198,19 @@ nav ul li:last-child {
   font-size: 1.1rem;
   opacity: 0.8;
 }
+/* Botón de modo oscuro en móviles (traído del trabajo de mi compañero) */
+.nav-actions-mobile {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 10;
+}
+
+/* Más ancho para que el menú (con el botón de tema y el usuario) no se monte sobre el logo */
+nav.navbar-main .nav-wrapper.container {
+  width: 92%;
+  max-width: 1280px;
+}

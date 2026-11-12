@@ -7,6 +7,7 @@ import Reservations from './pages/Reservations/Reservations'
 import Login from './pages/Login/Login'
 import Register from './pages/Register/Register'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import Courts from './pages/Courts/Courts'
 import Contact from './pages/Contact/Contact'
 import Profile from './pages/Profile/Profile'
@@ -70,6 +71,7 @@ const PublicRoute = ({ children }) => {
 
 function App() {
   return (
+    <ThemeProvider>
     <BrowserRouter>
       <AuthProvider>
         <Navbar />
@@ -117,6 +119,7 @@ function App() {
         <Footer />
       </AuthProvider>
     </BrowserRouter>
+    </ThemeProvider>
   )
 }
 

@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTheme } from '../../contexts/ThemeContext'
 import './Navbar.css'
 
 function Navbar() {
   const { user, isAuthenticated, logout } = useAuth()
+  const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [servicesOpen, setServicesOpen] = useState(false)
   const dropdownRef = useRef(null)
@@ -32,6 +34,18 @@ function Navbar() {
           <img src="/IconPadel.png" alt="PadelZone Logo" className="nav-logo" />
           PadelZone
         </Link>
+
+        {/* Botón de modo oscuro en móviles */}
+        <div className="nav-actions-mobile hide-on-large-only">
+          <button
+            className="btn-theme-minimal"
+            onClick={toggleTheme}
+            title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            aria-label="Alternar tema claro u oscuro"
+          >
+            <i className="material-icons">{isDark ? 'dark_mode' : 'light_mode'}</i>
+          </button>
+        </div>
 
         <ul className="right hide-on-med-and-down">
           <li><Link to="/">Inicio</Link></li>
@@ -71,6 +85,16 @@ function Navbar() {
           </li>
 
           <li><Link to="/contacto">Contacto</Link></li>
+          <li>
+            <button
+              className="btn-theme-minimal"
+              onClick={toggleTheme}
+              title={isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              aria-label="Alternar tema claro u oscuro"
+            >
+              <i className="material-icons">{isDark ? 'dark_mode' : 'light_mode'}</i>
+            </button>
+          </li>
           <li>
             {isAuthenticated ? (
               <div className="nav-user">
