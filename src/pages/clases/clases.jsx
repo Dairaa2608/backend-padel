@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../services/api'
+import { formatPrice, todayString } from '../../utils/courts'
 import './clases.css'
 
 import imgRegular from '../../img/regular.png'
@@ -11,99 +13,53 @@ import imgProfeValentina from '../../img/profesora.jpg'
 import imgprhombre from '../../img/hombre.png'
 import imgprmujer from '../../img/profesora1.jpg'
 
-const profesores = {
-  carlos: {
-    nombre: 'Carlos Mendoza',
-    cargo: 'Director Técnico WPT',
-    foto: 'https://randomuser.me/api/portraits/men/32.jpg'
-  },
-  sofia: {
-    nombre: 'Sofía Restrepo',
-    cargo: 'Entrenadora Certificada FEP',
-    foto: imgprmujer
-  },
-  andres: {
-    nombre: 'Andrés Quiroga',
-    cargo: 'Coach de Alto Rendimiento',
-    foto: imgprhombre
-  },
-  valentina: {
-    nombre: 'Valentina Salazar',
-    cargo: 'Especialista en Formación Junior',
-    foto: imgProfeValentina
-  }
+// Las fotos siguen en el frontend: se asocian por nombre
+const programImages = {
+  'Clases Regulares': imgRegular,
+  'Clases Intensivas': imgIntensiva,
+  'Clases de Verano': imgVerano,
+  'Clases Fin de Semana': imgFinde,
 }
 
-const clases = [
-  {
-    id: 1,
-    tipo: 'Regular',
-    nombre: 'Clases Regulares',
-    descripcion: 'Aprende las bases del pádel con ritmo constante. Ideal para quienes quieren progresar sin sacrificar su rutina.',
-    imagen: imgRegular,
-    horasSemana: 8,
-    duracionClase: 2,
-    diasSemana: 'Lunes, Miércoles y Viernes',
-    color: '#1a73e8',
-    horarios: ['8:00 AM', '10:00 AM', '4:00 PM', '6:00 PM'],
-    grupos: [
-      { edad: '10 - 14 años', profesor: profesores.valentina, precio: '$180.000 / mes', cupos: '8/12' },
-      { edad: '15 - 21 años', profesor: profesores.sofia, precio: '$200.000 / mes', cupos: '6/10' },
-      { edad: '22 años en adelante', profesor: profesores.carlos, precio: '$220.000 / mes', cupos: '9/12' }
-    ]
-  },
-  {
-    id: 2,
-    tipo: 'Intensiva',
-    nombre: 'Clases Intensivas',
-    descripcion: 'Programa de alto rendimiento para jugadores que quieren subir de nivel rápidamente con entrenamiento diario.',
-    imagen: imgIntensiva,
-    horasSemana: 12,
-    duracionClase: 2,
-    diasSemana: 'Lunes a Sábado',
-    color: '#e53935',
-    horarios: ['7:00 AM', '9:00 AM', '3:00 PM', '5:00 PM'],
-    grupos: [
-      { edad: '10 - 14 años', profesor: profesores.valentina, precio: '$280.000 / mes', cupos: '5/8' },
-      { edad: '15 - 21 años', profesor: profesores.andres, precio: '$320.000 / mes', cupos: '4/8' },
-      { edad: '22 años en adelante', profesor: profesores.andres, precio: '$350.000 / mes', cupos: '7/10' }
-    ]
-  },
-  {
-    id: 3,
-    tipo: 'Verano',
-    nombre: 'Clases de Verano',
-    descripcion: 'Aprovecha la temporada para iniciarte o perfeccionar tu juego. Ambiente dinámico y grupos reducidos.',
-    imagen: imgVerano,
-    horasSemana: 10,
-    duracionClase: 2,
-    diasSemana: 'Martes, Jueves y Sábado',
-    color: '#f9a825',
-    horarios: ['8:00 AM', '10:00 AM', '2:00 PM', '4:00 PM'],
-    grupos: [
-      { edad: '10 - 14 años', profesor: profesores.valentina, precio: '$150.000 / mes', cupos: '10/14' },
-      { edad: '15 - 21 años', profesor: profesores.sofia, precio: '$170.000 / mes', cupos: '8/12' },
-      { edad: '22 años en adelante', profesor: profesores.carlos, precio: '$190.000 / mes', cupos: '11/14' }
-    ]
-  },
-  {
-    id: 4,
-    tipo: 'Fin de Semana',
-    nombre: 'Clases Fin de Semana',
-    descripcion: 'Para quienes trabajan entre semana. Clases concentradas el sábado y domingo para no perder el ritmo.',
-    imagen: imgFinde,
-    horasSemana: 8,
-    duracionClase: 4,
-    diasSemana: 'Sábado y Domingo',
-    color: '#43a047',
-    horarios: ['9:00 AM', '11:00 AM', '3:00 PM', '5:00 PM'],
-    grupos: [
-      { edad: '10 - 14 años', profesor: profesores.valentina, precio: '$160.000 / mes', cupos: '6/10' },
-      { edad: '15 - 21 años', profesor: profesores.sofia, precio: '$180.000 / mes', cupos: '5/10' },
-      { edad: '22 años en adelante', profesor: profesores.carlos, precio: '$200.000 / mes', cupos: '8/12' }
-    ]
-  }
-]
+const coachPhotos = {
+  'Sofía Restrepo': imgprmujer,
+  'Andrés Quiroga': imgprhombre,
+  'Valentina Salazar': imgProfeValentina,
+}
+
+const LEVELS = ['Principiante', 'Intermedio', 'Avanzado']
+const PARTY_SIZES = [1, 2, 4] // el pádel se juega en parejas: nunca 3
+const MONTHLY_PARTY_SIZES = [2, 4]
+
+const ageLabel = (g) => (g.maxAge === null ? `${g.minAge} años en adelante` : `${g.minAge} - ${g.maxAge} años`)
+const peopleLabel = (n) => `${n} persona${n > 1 ? 's' : ''}`
+
+// Convierte un programa tal como llega de la API al formato que usa esta página
+const toViewProgram = (p) => ({
+  id: p._id,
+  tipo: p.type,
+  nombre: p.name,
+  descripcion: p.description,
+  imagen: programImages[p.name] || p.imageUrl || imgRegular,
+  horasSemana: p.hoursPerWeek,
+  duracionClase: p.sessionHours,
+  diasSemana: p.daysOfWeek,
+  weekdays: p.weekdays,
+  color: p.color || '#010231',
+  horarios: p.scheduleSlots,
+  grupos: p.groups.map((g) => ({
+    id: g._id,
+    edad: ageLabel(g),
+    precio: g.monthlyPrice,
+    capacidad: g.capacity,
+    cuposLibres: g.spotsLeft,
+    profesor: {
+      nombre: g.coach.name,
+      cargo: g.coach.title,
+      foto: g.coach.photoUrl || coachPhotos[g.coach.name] || imgprhombre,
+    },
+  })),
+})
 
 const formatCard = (val) =>
   val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
@@ -111,140 +67,246 @@ const formatCard = (val) =>
 const formatExpiry = (val) =>
   val.replace(/\D/g, '').slice(0, 4).replace(/^(\d{2})(\d)/, '$1/$2')
 
-const guardarInscripcionClase = (clase, grupo, form, payment) => {
-  const inscripciones = JSON.parse(localStorage.getItem('misClases')) || []
-  const nueva = {
-    id: Date.now(),
-    tipo: 'clase',
-    nombre: clase.nombre,
-    tipoClase: clase.tipo,
-    color: clase.color,
-    grupo: grupo.edad,
-    profesor: grupo.profesor.nombre,
-    profesorCargo: grupo.profesor.cargo,
-    profesorFoto: grupo.profesor.foto,
-    dias: clase.diasSemana,
-    horario: form.horario,
-    precio: grupo.precio,
-    nivel: form.nivel,
-    nombreUsuario: form.nombre,
-    telefono: form.telefono,
-    fechaNacimiento: form.fechaNacimiento,
-    tarjeta: payment.card.replace(/\s/g, '').slice(-4),
-    estado: 'Confirmada',
-    fechaInscripcion: new Date().toLocaleDateString('es-CO')
-  }
-  inscripciones.push(nueva)
-  localStorage.setItem('misClases', JSON.stringify(inscripciones))
-}
+const emptyPayment = { card: '', holder: '', expiry: '', cvv: '' }
 
 function Clases() {
   const { user, isAuthenticated } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
+  const [programas, setProgramas] = useState([])
+  const [precioSuelta, setPrecioSuelta] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+
+  const [personas, setPersonas] = useState(2)
   const [activeTab, setActiveTab] = useState('active')
-  const [cancelTarget, setCancelTarget] = useState(null)
-  const [, forceUpdate] = useState(0)
+  const [misInscripciones, setMisInscripciones] = useState([])
+  const [misClasesSueltas, setMisClasesSueltas] = useState([])
+  const [cancelTarget, setCancelTarget] = useState(null) // { kind: 'enrollment' | 'booking', id }
+  const [toast, setToast] = useState('')
 
-  const [selectedClase, setSelectedClase] = useState(null)
-  const [selectedGrupo, setSelectedGrupo] = useState(null)
-  const [showModal, setShowModal] = useState(false)
+  // Modal de inscripción mensual o clase suelta
+  const [modal, setModal] = useState(null) // { mode: 'MONTHLY' | 'SINGLE', clase, grupo }
   const [step, setStep] = useState('form')
-  const [showSuccess, setShowSuccess] = useState(false)
-
-  const [form, setForm] = useState({ nombre: '', telefono: '', fechaNacimiento: '', nivel: '', horario: '' })
+  const [form, setForm] = useState({ nivel: '', fechaNacimiento: '', horario: '', fecha: '' })
   const [formError, setFormError] = useState('')
+  const [dayInfo, setDayInfo] = useState(null) // cupos del día elegido (clase suelta)
+  const [payment, setPayment] = useState(emptyPayment)
+  const [sending, setSending] = useState(false)
 
-  const [payment, setPayment] = useState({ card: '', holder: '', expiry: '', cvv: '' })
-  const [paymentError, setPaymentError] = useState('')
-  const [paying, setPaying] = useState(false)
+  // Modal de clase de cortesía. Si se vuelve del registro o del login con
+  // { openCourtesy: true }, el formulario se abre directamente.
+  const [showCourtesy, setShowCourtesy] = useState(() => Boolean(location.state?.openCourtesy))
+  const [courtesy, setCourtesy] = useState({ cedula: '', programId: '', groupId: '', fecha: '', horario: '', personas: 1 })
+  const [courtesyError, setCourtesyError] = useState('')
+  const [courtesyDayInfo, setCourtesyDayInfo] = useState(null)
+
+  /* ── Carga de datos ─────────────────────────────────── */
+
+  const loadData = () =>
+    Promise.all([
+      api.getClasses(),
+      isAuthenticated ? api.getMyClassEnrollments() : [],
+      isAuthenticated ? api.getMyClassBookings() : [],
+    ])
+      .then(([catalogo, inscripciones, clases]) => {
+        setProgramas(catalogo.programs.map(toViewProgram))
+        setPrecioSuelta(catalogo.singleClassPrices)
+        setMisInscripciones(inscripciones)
+        setMisClasesSueltas(clases)
+        setLoadError('')
+      })
+      .catch((err) => setLoadError(err.message))
+      .finally(() => setLoading(false))
 
   useEffect(() => {
-    const handler = () => forceUpdate(n => n + 1)
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
-  }, [])
-
-  useEffect(() => {
-    const s = location.state
-    if (isAuthenticated && s?.clase && s?.grupo) {
-      handleOpenModal(s.clase, s.grupo)
-      window.history.replaceState({}, '')
-    }
+    loadData()
   }, [isAuthenticated])
 
-  const getMisClases = () =>
-    JSON.parse(localStorage.getItem('misClases') || '[]')
+  // Se borra la marca para que el formulario no se vuelva a abrir al recargar
+  useEffect(() => {
+    if (location.state?.openCourtesy) {
+      navigate(location.pathname, { replace: true, state: null })
+    }
+  }, [location.state, location.pathname, navigate])
 
-  const misClases = getMisClases()
-
-  const handleCancelarClase = (id) => {
-    const todas = getMisClases()
-    const actualizadas = todas.filter(c => c.id !== id)
-    localStorage.setItem('misClases', JSON.stringify(actualizadas))
-    setCancelTarget(null)
-    forceUpdate(n => n + 1)
+  const showToast = (message) => {
+    setToast(message)
+    setTimeout(() => setToast(''), 3500)
   }
 
-  const handleOpenModal = (clase, grupo) => {
-    setSelectedClase(clase)
-    setSelectedGrupo(grupo)
-    setForm({
-      nombre: user?.name || '',
-      telefono: '',
-      fechaNacimiento: '',
-      nivel: 'principiante',
-      horario: clase.horarios[0]
-    })
-    setPayment({ card: '', holder: '', expiry: '', cvv: '' })
-    setFormError('')
-    setPaymentError('')
-    setStep('form')
-    setShowModal(true)
-  }
+  /* ── Inscripción mensual y clase suelta ─────────────── */
 
-  const handleCloseModal = () => {
-    setShowModal(false)
-    setSelectedClase(null)
-    setSelectedGrupo(null)
-    setStep('form')
-  }
-
-  const handleInscribirse = (clase, grupo) => {
+  const openModal = (mode, clase, grupo) => {
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: '/clases', clase, grupo } })
+      navigate('/login', { state: { from: '/clases' } })
       return
     }
-    handleOpenModal(clase, grupo)
+    setModal({ mode, clase, grupo })
+    setForm({ nivel: '', fechaNacimiento: '', horario: clase.horarios[0], fecha: '' })
+    setPayment(emptyPayment)
+    setFormError('')
+    setDayInfo(null)
+    setStep('form')
   }
 
+  const closeModal = () => setModal(null)
+
+  // Al elegir la fecha de una clase suelta se consultan los cupos de ese día
+  const handleDateChange = async (fecha) => {
+    setForm((p) => ({ ...p, fecha }))
+    setDayInfo(null)
+    if (!fecha) return
+    try {
+      setDayInfo(await api.getClassDayAvailability(modal.clase.id, modal.grupo.id, fecha))
+    } catch (err) {
+      setFormError(err.message)
+    }
+  }
+
+  const totalModal = modal
+    ? modal.mode === 'MONTHLY' ? modal.grupo.precio * personas : precioSuelta[personas]
+    : 0
+
   const handleNextStep = () => {
-    if (!form.nombre || !form.telefono || !form.fechaNacimiento || !form.nivel || !form.horario) {
-      setFormError('Por favor completa todos los campos.')
+    if (modal.mode === 'MONTHLY' && (!form.nivel || !form.fechaNacimiento || !form.horario)) {
+      setFormError('Completa tu nivel, fecha de nacimiento y horario.')
       return
+    }
+    if (modal.mode === 'SINGLE') {
+      if (!form.fecha || !form.horario) {
+        setFormError('Elige la fecha y el horario de la clase.')
+        return
+      }
+      if (dayInfo && !dayInfo.validDay) {
+        setFormError(`Ese día no hay clase. Este programa es: ${dayInfo.daysOfWeek}`)
+        return
+      }
+      if (dayInfo && dayInfo.spotsLeft < personas) {
+        setFormError(`Ese día solo quedan ${dayInfo.spotsLeft} cupos en este grupo.`)
+        return
+      }
     }
     setFormError('')
     setStep('payment')
   }
 
-  const handlePayment = () => {
-    const rawCard = payment.card.replace(/\s/g, '')
-    if (rawCard.length < 16 || !payment.holder || !payment.expiry || payment.cvv.length < 3) {
-      setPaymentError('Por favor completa todos los datos de pago.')
+  // El pago es simulado: los datos de la tarjeta solo se validan aquí y NUNCA se envían
+  const handlePayment = async () => {
+    if (payment.card.replace(/\s/g, '').length < 16 || !payment.holder || !payment.expiry || payment.cvv.length < 3) {
+      setFormError('Por favor completa todos los datos de pago.')
       return
     }
-    setPaymentError('')
-    setPaying(true)
+    setFormError('')
+    setSending(true)
+    try {
+      const { clase, grupo, mode } = modal
+      if (mode === 'MONTHLY') {
+        await api.enrollInClass({
+          programId: clase.id, groupId: grupo.id, schedule: form.horario,
+          level: form.nivel, birthDate: form.fechaNacimiento, partySize: personas,
+        })
+      } else {
+        await api.bookClass({
+          type: 'SINGLE', programId: clase.id, groupId: grupo.id,
+          date: form.fecha, schedule: form.horario, partySize: personas,
+        })
+      }
+      await loadData()
+      setModal(null)
+      showToast(mode === 'MONTHLY' ? '¡Inscripción confirmada!' : '¡Clase reservada!')
+    } catch (err) {
+      setFormError(err.message)
+      setStep('form')
+      loadData()
+    } finally {
+      setSending(false)
+    }
+  }
 
-    setTimeout(() => {
-      setPaying(false)
-      guardarInscripcionClase(selectedClase, selectedGrupo, form, payment)
-      setShowModal(false)
-      setShowSuccess(true)
-      forceUpdate(n => n + 1)
-      setTimeout(() => setShowSuccess(false), 3500)
-    }, 1800)
+  /* ── Clase de cortesía ──────────────────────────────── */
+
+  const openCourtesy = () => {
+    if (!isAuthenticated) {
+      // Hay que tener cuenta: se registra y vuelve aquí con el formulario abierto
+      navigate('/registro', { state: { from: '/clases', openCourtesy: true } })
+      return
+    }
+    setCourtesyError('')
+    setShowCourtesy(true)
+  }
+
+  const courtesyProgram = programas.find((p) => p.id === courtesy.programId)
+
+  const updateCourtesy = async (changes) => {
+    const next = { ...courtesy, ...changes }
+    if (changes.programId !== undefined) {
+      Object.assign(next, { groupId: '', horario: '' })
+    }
+    setCourtesy(next)
+    setCourtesyError('')
+    setCourtesyDayInfo(null)
+    if (next.programId && next.groupId && next.fecha) {
+      try {
+        setCourtesyDayInfo(await api.getClassDayAvailability(next.programId, next.groupId, next.fecha))
+      } catch (err) {
+        setCourtesyError(err.message)
+      }
+    }
+  }
+
+  const handleCourtesySubmit = async () => {
+    const { cedula, programId, groupId, fecha, horario } = courtesy
+    if (!/^\d{6,10}$/.test(cedula)) {
+      setCourtesyError('Escribe tu cédula: solo números, entre 6 y 10 dígitos.')
+      return
+    }
+    if (!programId || !groupId || !fecha || !horario) {
+      setCourtesyError('Elige el programa, el grupo, la fecha y el horario.')
+      return
+    }
+    setSending(true)
+    try {
+      await api.bookClass({
+        type: 'COURTESY', programId, groupId, date: fecha,
+        schedule: horario, partySize: courtesy.personas, cedula,
+      })
+      await loadData()
+      setShowCourtesy(false)
+      setCourtesy({ cedula: '', programId: '', groupId: '', fecha: '', horario: '', personas: 1 })
+      showToast('¡Tu clase de cortesía está confirmada! 🎾')
+    } catch (err) {
+      // Si la cédula o la cuenta ya usaron su cortesía, la API lo rechaza
+      setCourtesyError(err.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  /* ── Cancelar ───────────────────────────────────────── */
+
+  const handleCancel = async () => {
+    try {
+      if (cancelTarget.kind === 'enrollment') {
+        await api.cancelClassEnrollment(cancelTarget.id)
+      } else {
+        await api.cancelClassBooking(cancelTarget.id)
+      }
+      await loadData()
+    } catch (err) {
+      setLoadError(err.message)
+    } finally {
+      setCancelTarget(null)
+    }
+  }
+
+  const activeBookings = misClasesSueltas.filter((b) => b.status === 'ACTIVE')
+  const totalMisClases = misInscripciones.length + activeBookings.length
+
+  const groupName = (program, groupId) => {
+    const group = program?.groups?.find((g) => g._id === groupId)
+    return group ? ageLabel(group) : ''
   }
 
   return (
@@ -255,6 +317,20 @@ function Clases() {
       </div>
 
       <div className="clases-container container">
+
+        {/* Banner: clase de cortesía */}
+        <div className="cortesia-banner">
+          <div className="cortesia-banner-text">
+            <i className="material-icons">card_giftcard</i>
+            <div>
+              <h3>¿Es tu primera vez con nosotros?</h3>
+              <p>Prueba una clase gratis, solo o con tu pareja de juego (1, 2 o 4 personas).</p>
+            </div>
+          </div>
+          <button className="cortesia-banner-btn" onClick={openCourtesy}>
+            Quiero mi clase de cortesía
+          </button>
+        </div>
 
         {isAuthenticated && (
           <div className="tournaments-tabs">
@@ -271,14 +347,37 @@ function Clases() {
             >
               <i className="material-icons">how_to_reg</i>
               Mis Clases
-              {misClases.length > 0 && (
-                <span className="tab-count">{misClases.length}</span>
-              )}
+              {totalMisClases > 0 && <span className="tab-count">{totalMisClases}</span>}
             </button>
           </div>
         )}
 
-        {activeTab === 'active' && clases.map(clase => (
+        {loading && <p className="clases-status">Cargando clases…</p>}
+        {loadError && (
+          <div className="tournament-form-error">
+            <i className="material-icons">error_outline</i>
+            {loadError}
+          </div>
+        )}
+
+        {/* Filtro: para cuántas personas */}
+        {activeTab === 'active' && !loading && (
+          <div className="personas-filtro">
+            <span>¿Cuántas personas vienen?</span>
+            {PARTY_SIZES.map((n) => (
+              <button
+                key={n}
+                className={`personas-btn ${personas === n ? 'activo' : ''}`}
+                onClick={() => setPersonas(n)}
+              >
+                {n}
+              </button>
+            ))}
+            <small>El pádel se juega en parejas: 1, 2 o 4 personas.</small>
+          </div>
+        )}
+
+        {activeTab === 'active' && programas.map(clase => (
           <div className="clase-card" key={clase.id}>
             <div className="clase-card-imagen">
               <img src={clase.imagen} alt={clase.nombre} />
@@ -298,47 +397,67 @@ function Clases() {
               </div>
 
               <div className="clase-grupos">
-                {clase.grupos.map((grupo, i) => (
-                  <div className="clase-grupo" key={i}>
-                    <div className="grupo-header">
-                      <span className="grupo-edad">
-                        <i className="material-icons">group</i>
-                        {grupo.edad}
-                      </span>
-                      <span className="grupo-precio">{grupo.precio}</span>
-                    </div>
-
-                    <div className="grupo-profesor">
-                      <img src={grupo.profesor.foto} alt={grupo.profesor.nombre} className="profesor-foto" />
-                      <div>
-                        <p className="profesor-nombre">{grupo.profesor.nombre}</p>
-                        <p className="profesor-cargo">{grupo.profesor.cargo}</p>
+                {clase.grupos.map(grupo => {
+                  const caben = grupo.cuposLibres >= personas
+                  const mensualPermitido = MONTHLY_PARTY_SIZES.includes(personas)
+                  return (
+                    <div className={`clase-grupo ${caben ? '' : 'sin-cupo'}`} key={grupo.id}>
+                      <div className="grupo-header">
+                        <span className="grupo-edad">
+                          <i className="material-icons">group</i>
+                          {grupo.edad}
+                        </span>
+                        <span className="grupo-precio">{formatPrice(grupo.precio)} / mes</span>
                       </div>
-                    </div>
 
-                    <div className="grupo-cupos">
-                      <span>Cupos: {grupo.cupos}</span>
-                      <div className="cupos-barra">
-                        <div
-                          className="cupos-fill"
-                          style={{
-                            width: `${(parseInt(grupo.cupos) / parseInt(grupo.cupos.split('/')[1])) * 100}%`,
-                            backgroundColor: clase.color
-                          }}
-                        />
+                      <div className="grupo-profesor">
+                        <img src={grupo.profesor.foto} alt={grupo.profesor.nombre} className="profesor-foto" />
+                        <div>
+                          <p className="profesor-nombre">{grupo.profesor.nombre}</p>
+                          <p className="profesor-cargo">{grupo.profesor.cargo}</p>
+                        </div>
                       </div>
-                    </div>
 
-                    <button
-                      className="btn-inscribir"
-                      style={{ backgroundColor: clase.color }}
-                      onClick={() => handleInscribirse(clase, grupo)}
-                    >
-                      <i className="material-icons">how_to_reg</i>
-                      Inscribirme en este grupo
-                    </button>
-                  </div>
-                ))}
+                      <div className="grupo-cupos">
+                        <span>Cupos libres: {grupo.cuposLibres} / {grupo.capacidad}</span>
+                        <div className="cupos-barra">
+                          <div
+                            className="cupos-fill"
+                            style={{
+                              width: `${((grupo.capacidad - grupo.cuposLibres) / grupo.capacidad) * 100}%`,
+                              backgroundColor: clase.color
+                            }}
+                          />
+                        </div>
+                        {!caben && (
+                          <small className="grupo-aviso">Sin cupo para {peopleLabel(personas)}</small>
+                        )}
+                      </div>
+
+                      <button
+                        className="btn-inscribir"
+                        style={{ backgroundColor: clase.color }}
+                        disabled={!caben || !mensualPermitido}
+                        title={!mensualPermitido ? 'La inscripción mensual es para 2 o 4 personas' : ''}
+                        onClick={() => openModal('MONTHLY', clase, grupo)}
+                      >
+                        <i className="material-icons">how_to_reg</i>
+                        {mensualPermitido
+                          ? `Inscripción mensual · ${formatPrice(grupo.precio * personas)}`
+                          : 'Mensual: solo 2 o 4 personas'}
+                      </button>
+                      <button
+                        className="btn-suelta"
+                        style={{ color: clase.color, borderColor: clase.color }}
+                        disabled={!caben}
+                        onClick={() => openModal('SINGLE', clase, grupo)}
+                      >
+                        <i className="material-icons">event</i>
+                        Clase suelta · {formatPrice(precioSuelta[personas])}
+                      </button>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -346,10 +465,10 @@ function Clases() {
 
         {activeTab === 'mine' && (
           <div className="my-registrations">
-            {misClases.length === 0 ? (
+            {totalMisClases === 0 ? (
               <div className="tournaments-empty">
                 <i className="material-icons">school</i>
-                <h5>No tienes clases inscritas aun</h5>
+                <h5>No tienes clases todavía</h5>
                 <p>Explora las clases disponibles y encuentra la ideal para ti</p>
                 <button className="tournament-btn" onClick={() => setActiveTab('active')}>
                   Ver Clases
@@ -357,55 +476,71 @@ function Clases() {
               </div>
             ) : (
               <div className="my-registrations-grid">
-                {misClases.map(ins => (
-                  <div className="my-reg-card" key={ins.id}>
-                    <div className="my-reg-header" style={{ backgroundColor: ins.color || '#010231' }}>
+                {misInscripciones.map(ins => (
+                  <div className="my-reg-card" key={ins._id}>
+                    <div className="my-reg-header" style={{ backgroundColor: ins.program?.color || '#010231' }}>
                       <i className="material-icons">school</i>
-                      <span>{ins.tipoClase}</span>
+                      <span>Mensual</span>
                     </div>
                     <div className="my-reg-body">
-                      <h6>{ins.nombre}</h6>
+                      <h6>{ins.program?.name}</h6>
                       <div className="my-reg-detail">
                         <i className="material-icons">calendar_today</i>
-                        <span>{ins.dias}</span>
-                      </div>
-                      <div className="my-reg-detail">
-                        <i className="material-icons">schedule</i>
-                        <span>Horario: {ins.horario}</span>
+                        <span>{ins.program?.daysOfWeek} · {ins.schedule}</span>
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">group</i>
-                        <span>Grupo: {ins.grupo}</span>
-                      </div>
-                      <div className="my-reg-detail">
-                        <i className="material-icons">person</i>
-                        <span>Profesor: {ins.profesor}</span>
+                        <span>Grupo: {groupName(ins.program, ins.group)} · {peopleLabel(ins.partySize)}</span>
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">fitness_center</i>
-                        <span>Nivel: {ins.nivel}</span>
+                        <span>Nivel: {ins.level}</span>
+                      </div>
+                      <div className="my-reg-footer">
+                        <span className="my-reg-status">
+                          <i className="material-icons">check_circle</i>
+                          Activa
+                        </span>
+                        <button className="my-reg-cancel-btn" onClick={() => setCancelTarget({ kind: 'enrollment', id: ins._id })}>
+                          <i className="material-icons">cancel</i>
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {activeBookings.map(b => (
+                  <div className="my-reg-card" key={b._id}>
+                    <div className="my-reg-header" style={{ backgroundColor: b.program?.color || '#010231' }}>
+                      <i className="material-icons">{b.type === 'COURTESY' ? 'card_giftcard' : 'event'}</i>
+                      <span>{b.type === 'COURTESY' ? 'Cortesía' : 'Clase suelta'}</span>
+                    </div>
+                    <div className="my-reg-body">
+                      <h6>{b.program?.name}</h6>
+                      <div className="my-reg-detail">
+                        <i className="material-icons">calendar_today</i>
+                        <span>{b.date} · {b.schedule}</span>
                       </div>
                       <div className="my-reg-detail">
-                        <i className="material-icons">credit_card</i>
-                        <span>Pagado con tarjeta •••• {ins.tarjeta}</span>
+                        <i className="material-icons">group</i>
+                        <span>Grupo: {groupName(b.program, b.group)} · {peopleLabel(b.partySize)}</span>
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">payments</i>
-                        <span>Inscripcion: {ins.precio}</span>
+                        <span>{b.price === 0 ? 'Gratis' : formatPrice(b.price)}</span>
                       </div>
-
                       <div className="my-reg-footer">
                         <span className="my-reg-status">
                           <i className="material-icons">check_circle</i>
                           Confirmada
                         </span>
-                        <button
-                          className="my-reg-cancel-btn"
-                          onClick={() => setCancelTarget(ins.id)}
-                        >
-                          <i className="material-icons">cancel</i>
-                          Cancelar
-                        </button>
+                        {b.date >= todayString() && (
+                          <button className="my-reg-cancel-btn" onClick={() => setCancelTarget({ kind: 'booking', id: b._id })}>
+                            <i className="material-icons">cancel</i>
+                            Cancelar
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -417,8 +552,9 @@ function Clases() {
 
       </div>
 
-      {showModal && selectedClase && selectedGrupo && (
-        <div className="tournament-modal-overlay" onClick={handleCloseModal}>
+      {/* Modal: inscripción mensual o clase suelta */}
+      {modal && (
+        <div className="tournament-modal-overlay" onClick={closeModal}>
           <div className="tournament-modal" onClick={e => e.stopPropagation()}>
 
             <div className="tournament-modal-header">
@@ -433,124 +569,109 @@ function Clases() {
                   Pago
                 </span>
               </div>
-              <button className="tournament-modal-close" onClick={handleCloseModal}>
+              <button className="tournament-modal-close" onClick={closeModal}>
                 <i className="material-icons">close</i>
               </button>
             </div>
 
+            {formError && (
+              <div className="tournament-form-error">
+                <i className="material-icons">error_outline</i>
+                {formError}
+              </div>
+            )}
+
             {step === 'form' && (
               <div className="tournament-modal-body">
                 <h6 className="modal-section-title">
-                  Inscripcion - {selectedClase.nombre} ({selectedGrupo.edad})
+                  {modal.mode === 'MONTHLY' ? 'Inscripción mensual' : 'Clase suelta'} - {modal.clase.nombre} ({modal.grupo.edad})
                 </h6>
 
-                {formError && (
-                  <div className="tournament-form-error">
-                    <i className="material-icons">error_outline</i>
-                    {formError}
+                <div className="tournament-form-field">
+                  <label>Titular</label>
+                  <input type="text" value={`${user?.name || ''} · ${user?.email || ''}`} disabled />
+                </div>
+
+                <div className="tournament-form-field">
+                  <label>Personas</label>
+                  <input type="text" value={peopleLabel(personas)} disabled />
+                </div>
+
+                {modal.mode === 'SINGLE' && (
+                  <div className="tournament-form-field">
+                    <label>Fecha de la clase ({modal.clase.diasSemana})</label>
+                    <input type="date" min={todayString()} value={form.fecha} onChange={e => handleDateChange(e.target.value)} />
+                    {dayInfo && (
+                      <small className={dayInfo.validDay && dayInfo.spotsLeft >= personas ? 'dia-ok' : 'dia-error'}>
+                        {!dayInfo.validDay
+                          ? `Ese día no hay clase. Este programa es: ${dayInfo.daysOfWeek}`
+                          : `Cupos libres ese día: ${dayInfo.spotsLeft}`}
+                      </small>
+                    )}
                   </div>
                 )}
 
-                <div className="tournament-form-field">
-                  <label>Nombre completo</label>
-                  <input
-                    type="text"
-                    placeholder="Tu nombre"
-                    value={form.nombre}
-                    onChange={e => setForm(p => ({ ...p, nombre: e.target.value }))}
-                  />
-                </div>
+                {modal.mode === 'MONTHLY' && (
+                  <>
+                    <div className="tournament-form-field">
+                      <label>Fecha de nacimiento del titular</label>
+                      <input type="date" value={form.fechaNacimiento} onChange={e => setForm(p => ({ ...p, fechaNacimiento: e.target.value }))} />
+                    </div>
+                    <div className="tournament-form-field">
+                      <label>Nivel de juego</label>
+                      <div className="tournament-select-wrapper">
+                        <select value={form.nivel} onChange={e => setForm(p => ({ ...p, nivel: e.target.value }))}>
+                          <option value="">Selecciona tu nivel</option>
+                          {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                        <i className="material-icons">expand_more</i>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div className="tournament-form-field">
-                  <label>Telefono</label>
-                  <input
-                    type="tel"
-                    placeholder="+57 300 000 0000"
-                    value={form.telefono}
-                    onChange={e => setForm(p => ({ ...p, telefono: e.target.value }))}
-                  />
-                </div>
-
-                <div className="tournament-form-field">
-                  <label>Fecha de nacimiento</label>
-                  <input
-                    type="date"
-                    value={form.fechaNacimiento}
-                    onChange={e => setForm(p => ({ ...p, fechaNacimiento: e.target.value }))}
-                  />
-                </div>
-
-                <div className="tournament-form-field">
-                  <label>Nivel de juego</label>
+                  <label>Horario</label>
                   <div className="tournament-select-wrapper">
-                    <select
-                      value={form.nivel}
-                      onChange={e => setForm(p => ({ ...p, nivel: e.target.value }))}
-                    >
-                      <option value="">Selecciona tu nivel</option>
-                      <option value="principiante">Principiante</option>
-                      <option value="intermedio">Intermedio</option>
-                      <option value="avanzado">Avanzado</option>
-                    </select>
-                    <i className="material-icons">expand_more</i>
-                  </div>
-                </div>
-
-                <div className="tournament-form-field">
-                  <label>Horario preferido</label>
-                  <div className="tournament-select-wrapper">
-                    <select
-                      value={form.horario}
-                      onChange={e => setForm(p => ({ ...p, horario: e.target.value }))}
-                    >
-                      {selectedClase.horarios.map(h => (
-                        <option key={h} value={h}>{h}</option>
-                      ))}
+                    <select value={form.horario} onChange={e => setForm(p => ({ ...p, horario: e.target.value }))}>
+                      {modal.clase.horarios.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
                     <i className="material-icons">expand_more</i>
                   </div>
                 </div>
 
                 <div className="tournament-modal-info">
-                  <p><i className="material-icons">group</i> Grupo: {selectedGrupo.edad}</p>
-                  <p><i className="material-icons">calendar_today</i> {selectedClase.diasSemana}</p>
-                  <p><i className="material-icons">emoji_events</i> Profesor: {selectedGrupo.profesor.nombre}</p>
+                  <p><i className="material-icons">calendar_today</i> {modal.clase.diasSemana}</p>
+                  <p><i className="material-icons">emoji_events</i> Profesor: {modal.grupo.profesor.nombre}</p>
                 </div>
 
-                <button className="tournament-modal-btn" style={{ backgroundColor: selectedClase.color }} onClick={handleNextStep}>
+                <button className="tournament-modal-btn" style={{ backgroundColor: modal.clase.color }} onClick={handleNextStep}>
                   <i className="material-icons">arrow_forward</i>
-                  Continuar al Pago - {selectedGrupo.precio}
+                  Continuar al Pago - {formatPrice(totalModal)}
                 </button>
               </div>
             )}
 
             {step === 'payment' && (
               <div className="tournament-modal-body">
-                <h6 className="modal-section-title">Pago de Inscripcion</h6>
+                <h6 className="modal-section-title">Pago</h6>
 
                 <div className="payment-summary">
                   <div className="payment-summary-row">
-                    <span>Clase</span>
-                    <span>{selectedClase.nombre}</span>
+                    <span>{modal.mode === 'MONTHLY' ? 'Inscripción mensual' : `Clase suelta · ${form.fecha}`}</span>
+                    <span>{modal.clase.nombre}</span>
                   </div>
                   <div className="payment-summary-row">
-                    <span>Grupo</span>
-                    <span>{selectedGrupo.edad}</span>
+                    <span>Personas</span>
+                    <span>{personas}</span>
                   </div>
                   <div className="payment-summary-row total">
-                    <span>Total mensual</span>
-                    <span style={{ color: selectedClase.color }}>{selectedGrupo.precio}</span>
+                    <span>Total</span>
+                    <span style={{ color: modal.clase.color }}>{formatPrice(totalModal)}</span>
                   </div>
                 </div>
 
-                {paymentError && (
-                  <div className="tournament-form-error">
-                    <i className="material-icons">error_outline</i>
-                    {paymentError}
-                  </div>
-                )}
-
-                <div className="credit-card-preview" style={{ background: selectedClase.color }}>
+                <div className="credit-card-preview" style={{ background: modal.clase.color }}>
                   <div className="credit-card-chip">
                     <i className="material-icons">contactless</i>
                   </div>
@@ -570,81 +691,167 @@ function Clases() {
                 </div>
 
                 <div className="tournament-form-field">
-                  <label>Numero de tarjeta</label>
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={payment.card}
-                    maxLength={19}
-                    onChange={e => setPayment(p => ({ ...p, card: formatCard(e.target.value) }))}
-                  />
+                  <label>Número de tarjeta</label>
+                  <input type="text" placeholder="1234 5678 9012 3456" value={payment.card} maxLength={19}
+                    onChange={e => setPayment(p => ({ ...p, card: formatCard(e.target.value) }))} />
                 </div>
 
                 <div className="tournament-form-field">
                   <label>Nombre del titular</label>
-                  <input
-                    type="text"
-                    placeholder="Como aparece en la tarjeta"
-                    value={payment.holder}
-                    onChange={e => setPayment(p => ({ ...p, holder: e.target.value.toUpperCase() }))}
-                  />
+                  <input type="text" placeholder="Como aparece en la tarjeta" value={payment.holder}
+                    onChange={e => setPayment(p => ({ ...p, holder: e.target.value.toUpperCase() }))} />
                 </div>
 
                 <div className="payment-row">
                   <div className="tournament-form-field">
                     <label>Fecha de vencimiento</label>
-                    <input
-                      type="text"
-                      placeholder="MM/AA"
-                      value={payment.expiry}
-                      maxLength={5}
-                      onChange={e => setPayment(p => ({ ...p, expiry: formatExpiry(e.target.value) }))}
-                    />
+                    <input type="text" placeholder="MM/AA" value={payment.expiry} maxLength={5}
+                      onChange={e => setPayment(p => ({ ...p, expiry: formatExpiry(e.target.value) }))} />
                   </div>
                   <div className="tournament-form-field">
                     <label>CVV</label>
-                    <input
-                      type="password"
-                      placeholder="xxx"
-                      value={payment.cvv}
-                      maxLength={4}
-                      onChange={e => setPayment(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '') }))}
-                    />
+                    <input type="password" placeholder="xxx" value={payment.cvv} maxLength={4}
+                      onChange={e => setPayment(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '') }))} />
                   </div>
                 </div>
 
                 <p className="payment-disclaimer">
                   <i className="material-icons">lock</i>
-                  Pago simulado - ningun dato real es procesado
+                  Pago simulado - los datos de la tarjeta no se envían ni se guardan
                 </p>
 
                 <div className="payment-actions">
-                  <button className="payment-back-btn" onClick={() => setStep('form')} disabled={paying}>
+                  <button className="payment-back-btn" onClick={() => setStep('form')} disabled={sending}>
                     <i className="material-icons">arrow_back</i>
                     Volver
                   </button>
-                  <button
-                    className="tournament-modal-btn"
-                    style={{ backgroundColor: selectedClase.color }}
-                    onClick={handlePayment}
-                    disabled={paying}
-                  >
-                    {paying ? (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <i className="material-icons spinning">refresh</i>
-                        Procesando...
-                      </span>
-                    ) : (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <i className="material-icons">payment</i>
-                        Pagar e Inscribir
-                      </span>
-                    )}
+                  <button className="tournament-modal-btn" style={{ backgroundColor: modal.clase.color }} onClick={handlePayment} disabled={sending}>
+                    <i className="material-icons">{sending ? 'hourglass_empty' : 'payment'}</i>
+                    {sending ? 'Procesando...' : `Pagar ${formatPrice(totalModal)}`}
                   </button>
                 </div>
               </div>
             )}
 
+          </div>
+        </div>
+      )}
+
+      {/* Modal: clase de cortesía */}
+      {showCourtesy && isAuthenticated && (
+        <div className="tournament-modal-overlay" onClick={() => setShowCourtesy(false)}>
+          <div className="tournament-modal" onClick={e => e.stopPropagation()}>
+            <div className="tournament-modal-header">
+              <h6 className="modal-section-title">
+                <i className="material-icons">card_giftcard</i> Clase de cortesía
+              </h6>
+              <button className="tournament-modal-close" onClick={() => setShowCourtesy(false)}>
+                <i className="material-icons">close</i>
+              </button>
+            </div>
+
+            <div className="tournament-modal-body">
+              <p className="cortesia-nota">
+                Es gratis y solo se puede usar <strong>una vez por persona</strong>. Con tu cédula
+                comprobamos que sea tu primera clase (se guarda protegida: nadie puede leerla).
+              </p>
+
+              {courtesyError && (
+                <div className="tournament-form-error">
+                  <i className="material-icons">error_outline</i>
+                  {courtesyError}
+                </div>
+              )}
+
+              <div className="tournament-form-field">
+                <label>Titular</label>
+                <input type="text" value={`${user?.name || ''} · ${user?.email || ''}`} disabled />
+              </div>
+
+              <div className="tournament-form-field">
+                <label>Número de cédula</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Solo números"
+                  maxLength={10}
+                  value={courtesy.cedula}
+                  onChange={e => updateCourtesy({ cedula: e.target.value.replace(/\D/g, '') })}
+                />
+              </div>
+
+              <div className="tournament-form-field">
+                <label>Programa</label>
+                <div className="tournament-select-wrapper">
+                  <select value={courtesy.programId} onChange={e => updateCourtesy({ programId: e.target.value })}>
+                    <option value="">Elige un programa</option>
+                    {programas.map(p => <option key={p.id} value={p.id}>{p.nombre} ({p.diasSemana})</option>)}
+                  </select>
+                  <i className="material-icons">expand_more</i>
+                </div>
+              </div>
+
+              {courtesyProgram && (
+                <>
+                  <div className="tournament-form-field">
+                    <label>Grupo</label>
+                    <div className="tournament-select-wrapper">
+                      <select value={courtesy.groupId} onChange={e => updateCourtesy({ groupId: e.target.value })}>
+                        <option value="">Elige tu grupo</option>
+                        {courtesyProgram.grupos.map(g => (
+                          <option key={g.id} value={g.id}>{g.edad} · {g.profesor.nombre}</option>
+                        ))}
+                      </select>
+                      <i className="material-icons">expand_more</i>
+                    </div>
+                  </div>
+
+                  <div className="tournament-form-field">
+                    <label>Horario</label>
+                    <div className="tournament-select-wrapper">
+                      <select value={courtesy.horario} onChange={e => updateCourtesy({ horario: e.target.value })}>
+                        <option value="">Elige un horario</option>
+                        {courtesyProgram.horarios.map(h => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                      <i className="material-icons">expand_more</i>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="tournament-form-field">
+                <label>Fecha {courtesyProgram ? `(${courtesyProgram.diasSemana})` : ''}</label>
+                <input type="date" min={todayString()} value={courtesy.fecha} onChange={e => updateCourtesy({ fecha: e.target.value })} />
+                {courtesyDayInfo && (
+                  <small className={courtesyDayInfo.validDay && courtesyDayInfo.spotsLeft >= courtesy.personas ? 'dia-ok' : 'dia-error'}>
+                    {!courtesyDayInfo.validDay
+                      ? `Ese día no hay clase. Este programa es: ${courtesyDayInfo.daysOfWeek}`
+                      : `Cupos libres ese día: ${courtesyDayInfo.spotsLeft}`}
+                  </small>
+                )}
+              </div>
+
+              <div className="tournament-form-field">
+                <label>¿Cuántas personas vienen?</label>
+                <div className="personas-filtro compacto">
+                  {PARTY_SIZES.map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`personas-btn ${courtesy.personas === n ? 'activo' : ''}`}
+                      onClick={() => updateCourtesy({ personas: n })}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button className="tournament-modal-btn" onClick={handleCourtesySubmit} disabled={sending}>
+                <i className="material-icons">{sending ? 'hourglass_empty' : 'card_giftcard'}</i>
+                {sending ? 'Confirmando...' : 'Confirmar mi clase gratis'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -655,19 +862,13 @@ function Clases() {
             <div className="cancel-modal-icon">
               <i className="material-icons">warning</i>
             </div>
-            <h5>Cancelar inscripcion?</h5>
-            <p>Esta accion no se puede deshacer y perderas tu cupo en la clase.</p>
+            <h5>¿Cancelar?</h5>
+            <p>Liberarás tu cupo para que lo use otra persona.</p>
             <div className="cancel-modal-actions">
-              <button
-                className="cancel-modal-confirm"
-                onClick={() => handleCancelarClase(cancelTarget)}
-              >
-                Si, cancelar
+              <button className="cancel-modal-confirm" onClick={handleCancel}>
+                Sí, cancelar
               </button>
-              <button
-                className="cancel-modal-dismiss"
-                onClick={() => setCancelTarget(null)}
-              >
+              <button className="cancel-modal-dismiss" onClick={() => setCancelTarget(null)}>
                 Volver
               </button>
             </div>
@@ -675,10 +876,10 @@ function Clases() {
         </div>
       )}
 
-      {showSuccess && (
+      {toast && (
         <div className="tournament-toast">
           <i className="material-icons">check_circle</i>
-          Inscripcion confirmada exitosamente!
+          {toast}
         </div>
       )}
     </div>

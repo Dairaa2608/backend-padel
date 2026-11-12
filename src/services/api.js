@@ -243,19 +243,52 @@ class Api {
   cancelReservation(id) {
     return request(`/reservations/${id}/cancel`, { method: 'PATCH' })
   }
-  /* ── CLASES ─────────────────────────────── */
+    /* ── CLASES (API real) ─────────────────── */
 
-  /**
-   * GET /api/classes
-   * @param {{page?:number,limit?:number}}
-   * @returns {Promise<{data:Array,total:number,page:number,limit:number}>}
-   */
-  getClasses(params = {}) {
-    return _delay(350).then(() => {
-      const { page = 1, limit = 10 } = params
-      return _page(_clases, page, limit)
+  /** GET /api/classes — programas, grupos con cupos libres y precios de la clase suelta */
+  getClasses() {
+    return request('/classes')
+  }
+
+  /** GET /api/classes/:programId/groups/:groupId/availability?date= — cupos de un grupo ese día */
+  getClassDayAvailability(programId, groupId, date) {
+    return request(`/classes/${programId}/groups/${groupId}/availability?date=${date}`)
+  }
+
+  /** POST /api/classes/enrollments — inscripción mensual (2 o 4 personas) */
+  enrollInClass({ programId, groupId, schedule, level, birthDate, partySize }) {
+    return request('/classes/enrollments', {
+      method: 'POST',
+      body: JSON.stringify({ programId, groupId, schedule, level, birthDate, partySize }),
     })
   }
+
+  /** POST /api/classes/bookings — clase suelta o de cortesía (1, 2 o 4 personas) */
+  bookClass({ type, programId, groupId, date, schedule, partySize, cedula }) {
+    return request('/classes/bookings', {
+      method: 'POST',
+      body: JSON.stringify({ type, programId, groupId, date, schedule, partySize, cedula }),
+    })
+  }
+
+  /** GET — mis inscripciones mensuales y mis clases sueltas/cortesía */
+  getMyClassEnrollments() {
+    return request('/classes/enrollments/me')
+  }
+
+  getMyClassBookings() {
+    return request('/classes/bookings/me')
+  }
+
+  /** PATCH — cancelar una inscripción mensual o una clase */
+  cancelClassEnrollment(id) {
+    return request(`/classes/enrollments/${id}/cancel`, { method: 'PATCH' })
+  }
+
+  cancelClassBooking(id) {
+    return request(`/classes/bookings/${id}/cancel`, { method: 'PATCH' })
+  }
+
 
   /* ── TORNEOS ───────────────────────────── */
 

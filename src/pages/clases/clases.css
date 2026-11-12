@@ -487,3 +487,144 @@
     font-size: 0.85rem !important;
     color: #777 !important;
 }
+
+/* ── Clases conectadas a la API ── */
+
+/* Banner de la clase de cortesía */
+.cortesia-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    padding: 20px 24px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #010231 0%, #0a7c5c 100%);
+    color: #fff;
+}
+
+.cortesia-banner-text {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.cortesia-banner-text i {
+    font-size: 2.4rem;
+    color: #ffd54f;
+}
+
+.cortesia-banner-text h3 {
+    margin: 0 0 4px;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.cortesia-banner-text p {
+    margin: 0;
+    opacity: 0.85;
+}
+
+.cortesia-banner-btn {
+    border: none;
+    border-radius: 10px;
+    padding: 12px 22px;
+    background: #ffd54f;
+    color: #010231;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.cortesia-banner-btn:hover {
+    background: #ffca28;
+}
+
+.cortesia-nota {
+    margin: 0 0 12px;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+/* Filtro: ¿cuántas personas vienen? */
+.personas-filtro {
+    display: flex;
+        align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    font-weight: 600;
+    color: #333;
+}
+
+.personas-filtro small {
+    font-weight: 400;
+    color: #777;
+}
+
+.personas-filtro.compacto {
+    margin-bottom: 0;
+}
+
+.personas-btn {
+    width: 42px;
+    height: 42px;
+    border: 1.5px solid #ccc;
+    border-radius: 50%;
+    background: #fff;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.personas-btn.activo {
+    border-color: #010231;
+    background: #010231;
+    color: #fff;
+}
+
+/* Grupo sin cupo para la cantidad de personas elegida */
+.clase-grupo.sin-cupo {
+    opacity: 0.6;
+}
+
+.grupo-aviso {
+    display: block;
+    margin-top: 4px;
+    color: #c62828;
+}
+
+.btn-inscribir:disabled,
+.btn-suelta:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Botón de clase suelta (debajo del de inscripción mensual) */
+.btn-suelta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    border: 1.5px solid;
+    border-radius: 10px;
+    background: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Cupos del día elegido */
+.dia-ok {
+    color: #2e7d32;
+}
+
+.dia-error {
+    color: #c62828;
+}
+
+.clases-status {
+    text-align: center;
+    color: #555;
+}
