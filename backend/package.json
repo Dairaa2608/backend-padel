@@ -11,12 +11,14 @@
     "express-rate-limit": "^8.7.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.11.4",
+    "nodemailer": "^10.5.0",
     "zod": "^4.6.7"
   },
   "scripts": {
     "seed": "node src/seed/seed.js",
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "seed:demo": "node src/seed/demo.js"
   },
   "engines": {
     "node": ">=20"

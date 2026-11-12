@@ -507,3 +507,10 @@
 .court-modal-btn i {
   font-size: 1.1rem;
 }
+
+/* Mientras llegan las canchas de la API */
+.courts-loading {
+  text-align: center;
+  color: #666;
+  padding: 40px 16px;
+}

@@ -2,6 +2,7 @@ import { Router } from 'express'
 import {
   listPrograms,
   getDayAvailability,
+  listUpcomingDates,
   enroll,
   listMyEnrollments,
   cancelEnrollment,
@@ -18,6 +19,7 @@ const router = Router()
 // Públicas: ver programas, grupos y cupos
 router.get('/', listPrograms)
 router.get('/:programId/groups/:groupId/availability', getDayAvailability)
+router.get('/:programId/groups/:groupId/dates', listUpcomingDates)
 
 // Inscripción mensual (2 o 4 personas)
 router.post('/enrollments', requireAuth, validate(enrollSchema), enroll)

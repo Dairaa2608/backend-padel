@@ -76,6 +76,16 @@ Debe aparecer `🚀 API escuchando en http://localhost:3000/api`. Abre en el nav
 
 Para apagarla: **Ctrl + C**.
 
+## Correo de bienvenida (opcional)
+
+Cuando alguien se registra, la API le envía un correo de bienvenida desde una cuenta de Gmail:
+
+1. En la cuenta de Gmail del club, activa la **verificación en 2 pasos**.
+2. Entra a <https://myaccount.google.com/apppasswords>, crea una contraseña de aplicación llamada "PadelZone" y copia las 16 letras.
+3. En `backend/.env` añade `MAIL_USER="correo@gmail.com"` y `MAIL_PASS="las 16 letras"`, y reinicia la API.
+
+Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no llega a ninguna bandeja, pero en la consola de la API aparece `✉️ Correo de prueba para ... → ábrelo aquí: https://ethereal.email/message/...`. Abre ese enlace para ver el correo. El registro nunca falla por culpa del correo.
+
 ## Scripts
 
 | Comando | Qué hace |
@@ -83,6 +93,7 @@ Para apagarla: **Ctrl + C**.
 | `npm run dev` | Arranca la API en modo desarrollo: se reinicia sola al guardar un archivo |
 | `npm start` | Arranca la API (modo producción, sin reinicio automático) |
 | `npm run seed` | Crea los índices y carga los datos iniciales (se puede ejecutar varias veces sin duplicar) |
+| `npm run seed:demo` | Datos para la presentación: vacía las clases, crea 10 alumnos de prueba (`demo1@padelzone.com` … `demo10@padelzone.com`, contraseña `Demo12345`) y deja lleno el grupo de 15 - 21 años de Clases Regulares |
 
 ## Endpoints
 
@@ -91,6 +102,29 @@ Para apagarla: **Ctrl + C**.
 | GET | `/api/health` | Estado de la API y de la conexión a MongoDB |
 | GET | `/api/courts` | Canchas activas |
 | GET | `/api/courts/:id` | Una cancha |
+| GET | `/api/courts/:id/availability?date=` | Horas libres y ocupadas de una cancha ese día |
+| POST | `/api/auth/register` · `/login` · `/logout` | Cuenta y sesión (cookie `token`) |
+| GET | `/api/auth/me` 🔒 | Usuario de la sesión |
+| PATCH | `/api/users/me` 🔒 | Editar mi perfil |
+| GET | `/api/users` 🛡️ | Lista de usuarios |
+| POST | `/api/reservations` 🔒 | Reservar una cancha (precio calculado por la API) |
+| GET | `/api/reservations/me` 🔒 · `/api/reservations` 🛡️ | Mis reservas · todas |
+| PATCH | `/api/reservations/:id/cancel` 🔒 | Cancelar una reserva |
+| GET | `/api/classes` | Programas de clases, grupos y cupos libres |
+| GET | `/api/classes/:programId/groups/:groupId/dates` | Próximos días con clase y sus cupos |
+| POST | `/api/classes/enrollments` 🔒 | Inscripción mensual a un grupo (siempre 1 persona) |
+| POST | `/api/classes/bookings` 🔒 | Clase suelta o de cortesía (1, 2 o 4 personas) |
+| GET | `/api/classes/enrollments/me` · `/bookings/me` 🔒 | Mis clases |
+| PATCH | `/api/classes/enrollments/:id/cancel` · `/bookings/:id/cancel` 🔒 | Cancelar |
+| GET | `/api/tournaments` | Torneos con cupos libres |
+| POST | `/api/tournaments/:id/register` 🔒 | Inscribirse en un torneo |
+| GET | `/api/tournaments/registrations/me` 🔒 | Mis inscripciones a torneos |
+| PATCH | `/api/tournaments/registrations/:id/cancel` 🔒 | Cancelar inscripción |
+| GET | `/api/products` · `/api/products/:id` | Productos de la tienda con su stock |
+| POST | `/api/orders` 🔒 | Comprar: descuenta el stock y calcula subtotal, envío y total en el servidor |
+| GET | `/api/orders/me` 🔒 | Mis pedidos |
+
+🔒 = requiere iniciar sesión · 🛡️ = solo administrador
 
 ### Formato de las respuestas
 

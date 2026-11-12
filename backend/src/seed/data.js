@@ -50,9 +50,9 @@ export const programs = [
 ]
 
 export const tournaments = [
-  { name: 'Copa PadelZone 2026', description: 'El torneo más importante del año. Compite contra los mejores jugadores de la región.', startDate: '2026-06-15', endDate: '2026-06-20', category: 'Profesional', level: 'Avanzado', location: 'Canchas Premium e Interior', fee: 50000, prize: 2000000, capacity: 16 },
-  { name: 'Torneo Amateur Summer', description: 'Ideal para jugadores que dan sus primeros pasos en la competencia. ¡Anímate a participar!', startDate: '2026-07-05', endDate: '2026-07-07', category: 'Amateur', level: 'Principiante / Intermedio', location: 'Canchas Recreativa y Express', fee: 30000, prize: 800000, capacity: 24 },
-  { name: 'Liga Comunidad PadelZone', description: 'Torneo mensual para miembros activos. Formato de liga con partidos cada fin de semana.', startDate: '2026-08-01', endDate: '2026-08-31', category: 'Comunidad', level: 'Todos los niveles', location: 'Todas las canchas', fee: 20000, prize: 500000, capacity: 32 },
+  { name: 'Copa PadelZone 2026', description: 'El torneo más importante del año. Compite contra los mejores jugadores de la región.', startDate: '2026-12-12', endDate: '2026-12-17', category: 'Profesional', level: 'Avanzado', location: 'Canchas Premium e Interior', fee: 50000, prize: 2000000, capacity: 16 },
+  { name: 'Torneo Amateur Summer', description: 'Ideal para jugadores que dan sus primeros pasos en la competencia. ¡Anímate a participar!', startDate: '2026-12-19', endDate: '2026-12-21', category: 'Amateur', level: 'Principiante / Intermedio', location: 'Canchas Recreativa y Express', fee: 30000, prize: 800000, capacity: 24 },
+  { name: 'Liga Comunidad PadelZone', description: 'Torneo mensual para miembros activos. Formato de liga con partidos cada fin de semana.', startDate: '2026-12-05', endDate: '2026-12-27', category: 'Comunidad', level: 'Todos los niveles', location: 'Todas las canchas', fee: 20000, prize: 500000, capacity: 32 },
 ]
 
 export const products = [

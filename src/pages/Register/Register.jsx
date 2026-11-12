@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import './Register.css'
 
@@ -19,6 +19,9 @@ function Register() {
 
   const navigate = useNavigate()
   const { register } = useAuth()
+    const location = useLocation()
+  // Si venía de otra página (por ejemplo, la clase de cortesía), vuelve allí al terminar
+  const from = location.state?.from || '/reservar'
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -102,8 +105,7 @@ function Register() {
         phone: form.phone,
       })
 
-      navigate('/reservar', { replace: true })
-
+      navigate(from, { replace: true, state: location.state })
     } catch (err) {
       setError(err.message || 'Error al registrarse. Inténtalo de nuevo.')
     } finally {
@@ -281,7 +283,7 @@ function Register() {
             </button>
 
             <div className="register-links">
-              <p>¿Ya tienes cuenta? <Link to="/login" className="login-link">Inicia sesión</Link></p>
+              <p>¿Ya tienes cuenta? <Link to="/login" state={location.state} className="login-link">Inicia sesión</Link></p>
             </div>
           </form>
         </div>

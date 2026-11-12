@@ -2,7 +2,7 @@ import { ClassProgram, ClassEnrollment, ClassBooking, ClassSession } from '../mo
 import { availabilityQuerySchema, SINGLE_CLASS_PRICES } from '../schemas/class.schemas.js'
 import { AppError } from '../utils/AppError.js'
 import { hashCedula } from '../utils/cedula.js'
-import { isPast, weekdayOf, hourFromSlot } from '../utils/dates.js'
+import { isPast, weekdayOf, hourFromSlot, todayInColombia } from '../utils/dates.js'
 
 /* ── Ayudas ─────────────────────────────────────────── */
 
@@ -70,11 +70,40 @@ export async function getDayAvailability(req, res) {
   })
 }
 
-/* ── Inscripción mensual (2 o 4 personas) ───────────── */
+// GET /api/classes/:programId/groups/:groupId/dates → próximos días con clase y sus cupos,
+// desde hoy hasta el final del mes siguiente (por ejemplo, en noviembre: hasta el 31 de diciembre).
+// Así la página muestra un calendario con solo esos días habilitados.
+export async function listUpcomingDates(req, res) {
+  const { program, group } = await findProgramAndGroup(req.params.programId, req.params.groupId)
+
+  const day = new Date(`${todayInColombia()}T12:00:00Z`)
+  const lastDay = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + 2, 0, 12))
+
+  const dates = []
+  while (day <= lastDay) {
+    const date = day.toISOString().slice(0, 10)
+    if (program.weekdays.includes(weekdayOf(date))) dates.push(date)
+    day.setUTCDate(day.getUTCDate() + 1)
+  }
+
+  // Una sola consulta para los cupos ocupados de todos esos días
+  const sessions = await ClassSession.find({ group: group._id, date: { $in: dates } })
+  const booked = Object.fromEntries(sessions.map((s) => [s.date, s.booked]))
+
+  res.json({
+    data: {
+      daysOfWeek: program.daysOfWeek,
+      dates: dates.map((date) => ({ date, spotsLeft: Math.max(monthlySpotsLeft(group) - (booked[date] ?? 0), 0) })),
+    },
+  })
+}
+
+/* ── Inscripción mensual (siempre individual) ───────── */
 
 // POST /api/classes/enrollments
 export async function enroll(req, res) {
-  const { programId, groupId, schedule, level, birthDate, partySize } = req.body
+  const { programId, groupId, schedule, level, birthDate } = req.body
+  const partySize = 1 // la inscripción mensual es siempre para una persona
   const { program, group } = await findProgramAndGroup(programId, groupId)
   checkSchedule(program, schedule)
 
@@ -102,7 +131,7 @@ export async function enroll(req, res) {
   )
   if (!reserved || maxAllowed < 0) {
     if (reserved) await releaseMonthlySpots(program._id, group._id, partySize)
-    throw new AppError(409, 'GROUP_FULL', `No quedan cupos para ${partySize} personas en este grupo`)
+    throw new AppError(409, 'GROUP_FULL', 'No quedan cupos en este grupo')
   }
 
   try {

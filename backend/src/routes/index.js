@@ -6,6 +6,10 @@ import authRoutes from './auth.routes.js'
 import usersRoutes from './users.routes.js'
 import reservationsRoutes from './reservations.routes.js'
 import classesRoutes from './classes.routes.js'
+import tournamentsRoutes from './tournaments.routes.js'
+import productsRoutes from './products.routes.js'
+import ordersRoutes from './orders.routes.js'
+
 const router = Router()
 
 // Comprobar que la API (y la conexión a MongoDB) funcionan
@@ -23,5 +27,8 @@ router.use('/auth', authRoutes)
 router.use('/users', usersRoutes)
 router.use('/reservations', reservationsRoutes)
 router.use('/classes', classesRoutes)
+router.use('/tournaments', tournamentsRoutes)
+router.use('/products', productsRoutes)
+router.use('/orders', ordersRoutes)
 
 export default router
