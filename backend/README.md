@@ -76,6 +76,16 @@ Debe aparecer `🚀 API escuchando en http://localhost:3000/api`. Abre en el nav
 
 Para apagarla: **Ctrl + C**.
 
+## Correo de bienvenida (opcional)
+
+Cuando alguien se registra, la API le envía un correo de bienvenida desde una cuenta de Gmail:
+
+1. En la cuenta de Gmail del club, activa la **verificación en 2 pasos**.
+2. Entra a <https://myaccount.google.com/apppasswords>, crea una contraseña de aplicación llamada "PadelZone" y copia las 16 letras.
+3. En `backend/.env` añade `MAIL_USER="correo@gmail.com"` y `MAIL_PASS="las 16 letras"`, y reinicia la API.
+
+Si no se configuran, el registro funciona igual pero no se envía el correo (la consola lo avisa).
+
 ## Scripts
 
 | Comando | Qué hace |
