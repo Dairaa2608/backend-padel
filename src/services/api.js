@@ -18,12 +18,6 @@ const _products = [
   { id: 6, name: 'Grip Antideslizante Premium',desc: 'Pack de 3 grips antideslizantes de alta adherencia. Reducen la vibración.',               price:  22000, badge: 'Agotado',  badgeColor: '#757575', img: imgGrip },
 ]
 
-const _torneos = [
-  { id: 1, nombre: 'Torneo Amateur', fecha: '2026-06-15', lugar: 'PadelZone Central', categoria: 'Amateur' },
-  { id: 2, nombre: 'Copa PadelZone', fecha: '2026-07-20', lugar: 'PadelZone Premium', categoria: 'Profesional' },
-  { id: 3, nombre: 'Torneo Express', fecha: '2026-08-10', lugar: 'PadelZone Express', categoria: 'Mixto' },
-]
-
 // Carrito persistido en localStorage
 let _cart = []
 const CART_KEY = 'padelzone_cart'
@@ -282,18 +276,29 @@ class Api {
     return request(`/classes/bookings/${id}/cancel`, { method: 'PATCH' })
   }
 
-  /* ── TORNEOS ───────────────────────────── */
+  /* ── TORNEOS (API real) ─────────────────── */
 
-  /**
-   * GET /api/tournaments
-   * @param {{page?:number,limit?:number}}
-   * @returns {Promise<{data:Array,total:number,page:number,limit:number}>}
-   */
-  getTournaments(params = {}) {
-    return _delay(350).then(() => {
-      const { page = 1, limit = 10 } = params
-      return _page(_torneos, page, limit)
+  /** GET /api/tournaments — torneos con sus cupos libres */
+  getTournaments() {
+    return request('/tournaments')
+  }
+
+  /** GET /api/tournaments/registrations/me — mis inscripciones activas */
+  getMyTournamentRegistrations() {
+    return request('/tournaments/registrations/me')
+  }
+
+  /** POST /api/tournaments/:id/register — inscribirse (la API comprueba los cupos) */
+  registerToTournament(tournamentId, { level }) {
+    return request(`/tournaments/${tournamentId}/register`, {
+      method: 'POST',
+      body: JSON.stringify({ level }),
     })
+  }
+
+  /** PATCH /api/tournaments/registrations/:id/cancel — cancelar mi inscripción */
+  cancelTournamentRegistration(registrationId) {
+    return request(`/tournaments/registrations/${registrationId}/cancel`, { method: 'PATCH' })
   }
 
   /* ── AUTH (API real) ─────────────────── */

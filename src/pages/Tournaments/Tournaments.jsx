@@ -1,58 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import api from '../../services/api'
 import './Tournaments.css'
 
 import t1 from '../../img/Torneo1.png'
 import t2 from '../../img/Torneo2.png'
 import t3 from '../../img/Torneo3.png'
 
-const tournaments = [
-  {
-    id: 1,
-    img: t1,
-    name: 'Copa PadelZone 2026',
-    desc: 'El torneo más importante del año. Compite contra los mejores jugadores de la región.',
-    date: '2026-06-15',
-    endDate: '2026-06-20',
-    category: 'Profesional',
-    prize: '$2.000.000',
-    fee: 50000,
-    spots: 16,
-    spotsLeft: 6,
-    location: 'Canchas Premium e Interior',
-    level: 'Avanzado'
-  },
-  {
-    id: 2,
-    img: t2,
-    name: 'Torneo Amateur Summer',
-    desc: 'Ideal para jugadores que dan sus primeros pasos en la competencia. ¡Anímate a participar!',
-    date: '2026-07-05',
-    endDate: '2026-07-07',
-    category: 'Amateur',
-    prize: '$800.000',
-    fee: 30000,
-    spots: 24,
-    spotsLeft: 14,
-    location: 'Canchas Recreativa y Express',
-    level: 'Principiante / Intermedio'
-  },
-  {
-    id: 3,
-    img: t3,
-    name: 'Liga Comunidad PadelZone',
-    desc: 'Torneo mensual para miembros activos. Formato de liga con partidos cada fin de semana.',
-    date: '2026-08-01',
-    endDate: '2026-08-31',
-    category: 'Comunidad',
-    prize: '$500.000',
-    fee: 20000,
-    spots: 32,
-    spotsLeft: 20,
-    location: 'Todas las canchas',
-    level: 'Todos los niveles'
-  }
-]
+// Las imágenes siguen en el frontend: se asocian a cada torneo por su nombre
+const tournamentImages = {
+  'Copa PadelZone 2026': t1,
+  'Torneo Amateur Summer': t2,
+  'Liga Comunidad PadelZone': t3,
+}
 
 const categoryColors = {
   'Profesional': '#1565c0',
@@ -73,8 +33,42 @@ const formatCard = (val) =>
 const formatExpiry = (val) =>
   val.replace(/\D/g, '').slice(0, 4).replace(/^(\d{2})(\d)/, '$1/$2')
 
+// Convierte un torneo tal como llega de la API al formato que usa esta página
+const toViewTournament = (t) => ({
+  id: t._id,
+  img: tournamentImages[t.name] || t.imageUrl || t1,
+  name: t.name,
+  desc: t.description,
+  date: t.startDate,
+  endDate: t.endDate,
+  category: t.category,
+  prize: formatPrice(t.prize),
+  fee: t.fee,
+  spots: t.capacity,
+  spotsLeft: t.spotsLeft,
+  location: t.location,
+  level: t.level,
+})
+
+const toViewRegistration = (r) => ({
+  id: r._id,
+  tournamentId: r.tournament._id,
+  tournamentName: r.tournament.name,
+  tournamentDate: r.tournament.startDate,
+  tournamentEndDate: r.tournament.endDate,
+  category: r.tournament.category,
+  prize: formatPrice(r.tournament.prize),
+  fee: r.tournament.fee,
+  level: r.level,
+})
+
 function Tournaments() {
   const { user, isAuthenticated } = useAuth()
+
+  const [tournaments, setTournaments] = useState([])
+  const [registrations, setRegistrations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   const [selectedTournament, setSelectedTournament] = useState(null)
   const [step, setStep] = useState('form')
@@ -82,32 +76,42 @@ function Tournaments() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [activeTab, setActiveTab] = useState('active')
   const [cancelTarget, setCancelTarget] = useState(null)
-  const [, forceUpdate] = useState(0)
 
-  const [form, setForm] = useState({ name: '', email: '', phone: '', level: '' })
+  const [form, setForm] = useState({ level: '' })
   const [formError, setFormError] = useState('')
 
+  // El pago es simulado: los datos de la tarjeta solo se validan aquí,
+  // NUNCA se envían a la API ni se guardan en ningún sitio
   const [payment, setPayment] = useState({ card: '', holder: '', expiry: '', cvv: '' })
   const [paymentError, setPaymentError] = useState('')
   const [paying, setPaying] = useState(false)
 
+  // Torneos (con cupos reales) y, si hay sesión, mis inscripciones
+  const loadData = () =>
+    Promise.all([
+      api.getTournaments(),
+      isAuthenticated ? api.getMyTournamentRegistrations() : [],
+    ])
+      .then(([tournamentsData, registrationsData]) => {
+        setTournaments(tournamentsData.map(toViewTournament))
+        setRegistrations(registrationsData.map(toViewRegistration))
+        setLoadError('')
+      })
+      .catch((err) => setLoadError(err.message))
+      .finally(() => setLoading(false))
+
   useEffect(() => {
-    const handler = () => forceUpdate(n => n + 1)
-    window.addEventListener('storage', handler)
-    return () => window.removeEventListener('storage', handler)
-  }, [])
+    loadData()
+  }, [isAuthenticated])
 
-  const getRegistrations = () =>
-    JSON.parse(localStorage.getItem('padelzone_tournaments') || '[]')
-
-  const userRegistrations = getRegistrations().filter(r => r.email === user?.email)
+  const userRegistrations = registrations
 
   const isRegistered = (tournamentId) =>
-    getRegistrations().some(r => r.tournamentId === tournamentId && r.email === user?.email)
+    registrations.some(r => r.tournamentId === tournamentId)
 
   const handleOpenModal = (tournament) => {
     setSelectedTournament(tournament)
-    setForm({ name: user?.name || '', email: user?.email || '', phone: '', level: '' })
+    setForm({ level: '' })
     setPayment({ card: '', holder: '', expiry: '', cvv: '' })
     setFormError('')
     setPaymentError('')
@@ -122,15 +126,15 @@ function Tournaments() {
   }
 
   const handleNextStep = () => {
-    if (!form.name || !form.email || !form.phone || !form.level) {
-      setFormError('Por favor completa todos los campos.')
+    if (!form.level) {
+      setFormError('Selecciona tu nivel de juego.')
       return
     }
     setFormError('')
     setStep('payment')
   }
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     const rawCard = payment.card.replace(/\s/g, '')
     if (rawCard.length < 16 || !payment.holder || !payment.expiry || payment.cvv.length < 3) {
       setPaymentError('Por favor completa todos los datos de pago.')
@@ -139,44 +143,30 @@ function Tournaments() {
     setPaymentError('')
     setPaying(true)
 
-    setTimeout(() => {
-      const reservationId = Date.now()
-      const createdAt = new Date().toISOString()
-
-      const registration = {
-        id: reservationId,
-        tournamentId: selectedTournament.id,
-        tournamentName: selectedTournament.name,
-        tournamentDate: selectedTournament.date,
-        tournamentEndDate: selectedTournament.endDate,
-        category: selectedTournament.category,
-        prize: selectedTournament.prize,
-        fee: selectedTournament.fee,
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        level: form.level,
-        cardLast4: payment.card.replace(/\s/g, '').slice(-4),
-        registeredAt: createdAt
-      }
-
-      const existing = getRegistrations()
-      existing.push(registration)
-      localStorage.setItem('padelzone_tournaments', JSON.stringify(existing))
-
-      setPaying(false)
+    try {
+      // A la API solo se envía el nivel: ella comprueba que queden cupos
+      await api.registerToTournament(selectedTournament.id, { level: form.level })
+      await loadData()
       setShowModal(false)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3500)
-    }, 1800)
+    } catch (err) {
+      setPaymentError(err.message)
+      loadData()
+    } finally {
+      setPaying(false)
+    }
   }
 
-  const handleCancelRegistration = (id) => {
-    const all = getRegistrations()
-    const updated = all.filter(r => r.id !== id)
-    localStorage.setItem('padelzone_tournaments', JSON.stringify(updated))
-    setCancelTarget(null)
-    forceUpdate(n => n + 1)
+  const handleCancelRegistration = async (id) => {
+    try {
+      await api.cancelTournamentRegistration(id)
+      await loadData()
+    } catch (err) {
+      setLoadError(err.message)
+    } finally {
+      setCancelTarget(null)
+    }
   }
 
   const spotsPercent = (t) => ((t.spots - t.spotsLeft) / t.spots) * 100
@@ -212,6 +202,20 @@ function Tournaments() {
                 <span className="tab-count">{userRegistrations.length}</span>
               )}
             </button>
+          </div>
+        )}
+
+        {loading && (
+          <div className="tournaments-empty">
+            <i className="material-icons spinning">refresh</i>
+            <p>Cargando torneos…</p>
+          </div>
+        )}
+
+        {loadError && (
+          <div className="tournament-form-error">
+            <i className="material-icons">error_outline</i>
+            {loadError}
           </div>
         )}
 
@@ -341,7 +345,7 @@ function Tournaments() {
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">credit_card</i>
-                        <span>Pagado con tarjeta •••• {reg.cardLast4}</span>
+                        <span>Pago simulado</span>
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">payments</i>
@@ -409,9 +413,8 @@ function Tournaments() {
                   <label>Nombre Completo</label>
                   <input
                     type="text"
-                    placeholder="Tu nombre"
-                    value={form.name}
-                    onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                    value={user?.name || ''}
+                    disabled
                   />
                 </div>
 
@@ -419,9 +422,8 @@ function Tournaments() {
                   <label>Email</label>
                   <input
                     type="email"
-                    placeholder="tu@email.com"
-                    value={form.email}
-                    onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                    value={user?.email || ''}
+                    disabled
                   />
                 </div>
 
@@ -429,9 +431,8 @@ function Tournaments() {
                   <label>Teléfono</label>
                   <input
                     type="tel"
-                    placeholder="+57 300 000 0000"
-                    value={form.phone}
-                    onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
+                    value={user?.phone || 'Sin teléfono'}
+                    disabled
                   />
                 </div>
 
