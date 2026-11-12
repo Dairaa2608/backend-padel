@@ -70,15 +70,17 @@ export async function getDayAvailability(req, res) {
   })
 }
 
-// GET /api/classes/:programId/groups/:groupId/dates → próximos días con clase y sus cupos.
-// Así la página muestra solo los días disponibles en vez de un calendario libre.
+// GET /api/classes/:programId/groups/:groupId/dates → próximos días con clase y sus cupos,
+// desde hoy hasta el final del mes siguiente (por ejemplo, en noviembre: hasta el 31 de diciembre).
+// Así la página muestra un calendario con solo esos días habilitados.
 export async function listUpcomingDates(req, res) {
   const { program, group } = await findProgramAndGroup(req.params.programId, req.params.groupId)
-  const DAYS_AHEAD = 21 // las próximas 3 semanas
+
+  const day = new Date(`${todayInColombia()}T12:00:00Z`)
+  const lastDay = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth() + 2, 0, 12))
 
   const dates = []
-  const day = new Date(`${todayInColombia()}T12:00:00Z`)
-  for (let i = 0; i < DAYS_AHEAD; i++) {
+  while (day <= lastDay) {
     const date = day.toISOString().slice(0, 10)
     if (program.weekdays.includes(weekdayOf(date))) dates.push(date)
     day.setUTCDate(day.getUTCDate() + 1)

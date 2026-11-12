@@ -596,7 +596,7 @@ function Clases() {
                 {modal.mode === 'SINGLE' && (
                   <div className="tournament-form-field">
                     <label>Elige el día ({modal.clase.diasSemana})</label>
-                    <DiasDisponibles fechas={fechas} value={form.fecha} personas={form.personas}
+                    <CalendarioClases fechas={fechas} value={form.fecha} personas={form.personas}
                       onChange={(fecha) => setForm(p => ({ ...p, fecha }))} />
                   </div>
                 )}
@@ -821,7 +821,7 @@ function Clases() {
               {courtesy.groupId && (
                 <div className="tournament-form-field">
                   <label>Elige el día ({courtesyProgram?.diasSemana})</label>
-                  <DiasDisponibles fechas={courtesyFechas} value={courtesy.fecha} personas={courtesy.personas}
+                  <CalendarioClases fechas={courtesyFechas} value={courtesy.fecha} personas={courtesy.personas}
                     onChange={(fecha) => updateCourtesy({ fecha })} />
                 </div>
               )}
@@ -884,28 +884,84 @@ function PersonasSelector({ opciones, value, onChange, disabledIf = () => false 
   )
 }
 
-// Solo los próximos días con clase, con sus cupos. Los que no tienen sitio salen desactivados.
-function DiasDisponibles({ fechas, value, personas, onChange }) {
+const WEEK_DAYS = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do']
+const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio',
+  'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+
+const toKey = (year, month, day) =>
+  `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+
+// Calendario mensual: solo se pueden elegir los días con clase y cupo para todas las personas.
+// Los días sin clase, pasados o llenos salen en gris.
+function CalendarioClases({ fechas, value, personas, onChange }) {
+  // Mes que se está viendo: empieza en el mes del primer día con clase
+  const [visible, setVisible] = useState(null)
+
   if (fechas.length === 0) {
-    return <p className="dias-cargando">Cargando días disponibles…</p>
+    return <p className="dias-cargando">Cargando calendario…</p>
   }
+
+  const first = fechas[0].date
+  const last = fechas[fechas.length - 1].date
+  const current = visible ?? { year: Number(first.slice(0, 4)), month: Number(first.slice(5, 7)) - 1 }
+  const spotsByDate = Object.fromEntries(fechas.map((f) => [f.date, f.spotsLeft]))
+
+  const monthKey = (y, m) => toKey(y, m, 1).slice(0, 7)
+  const canGoBack = monthKey(current.year, current.month) > first.slice(0, 7)
+  const canGoForward = monthKey(current.year, current.month) < last.slice(0, 7)
+  const move = (delta) => {
+    const d = new Date(current.year, current.month + delta, 1)
+    setVisible({ year: d.getFullYear(), month: d.getMonth() })
+  }
+
+  // Huecos al inicio para que el día 1 caiga en su día de la semana (la semana empieza en lunes)
+  const offset = (new Date(current.year, current.month, 1).getDay() + 6) % 7
+  const daysInMonth = new Date(current.year, current.month + 1, 0).getDate()
+  const cells = [...Array(offset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+
   return (
-    <div className="dias-grid">
-      {fechas.map(({ date, spotsLeft }) => {
-        const caben = spotsLeft >= personas
-        return (
-          <button
-            key={date}
-            type="button"
-            className={`dia-btn ${value === date ? 'activo' : ''}`}
-            disabled={!caben}
-            onClick={() => onChange(date)}
-          >
-            <strong>{dateLabel(date)}</strong>
-            <small>{spotsLeft === 0 ? 'Lleno' : `${caben ? '' : 'Solo '}${spotsLeft} cupo${spotsLeft === 1 ? '' : 's'}`}</small>
-          </button>
-        )
-      })}
+    <div className="calendario">
+      <div className="calendario-header">
+        <button type="button" className="calendario-nav" onClick={() => move(-1)} disabled={!canGoBack} aria-label="Mes anterior">
+          <i className="material-icons">chevron_left</i>
+        </button>
+        <span className="calendario-mes">{MONTHS[current.month]} {current.year}</span>
+        <button type="button" className="calendario-nav" onClick={() => move(1)} disabled={!canGoForward} aria-label="Mes siguiente">
+          <i className="material-icons">chevron_right</i>
+        </button>
+      </div>
+
+      <div className="calendario-grid">
+        {WEEK_DAYS.map((d) => <span key={d} className="calendario-semana">{d}</span>)}
+
+        {cells.map((day, i) => {
+          if (day === null) return <span key={`vacio-${i}`} />
+          const key = toKey(current.year, current.month, day)
+          const spots = spotsByDate[key]
+          const hayClase = spots !== undefined
+          const caben = hayClase && spots >= personas
+          const estado = !hayClase ? 'sin-clase' : caben ? 'disponible' : 'lleno'
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`calendario-dia ${estado} ${value === key ? 'activo' : ''}`}
+              disabled={!caben}
+              onClick={() => onChange(key)}
+              title={!hayClase ? 'No hay clase este día' : caben ? `${spots} cupos libres` : `Sin cupo para ${peopleLabel(personas)}`}
+            >
+              <span className="calendario-numero">{day}</span>
+              {hayClase && <small>{spots === 0 ? 'Lleno' : `${spots} cupo${spots === 1 ? '' : 's'}`}</small>}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="calendario-leyenda">
+        <span><i className="punto disponible" /> Disponible</span>
+        <span><i className="punto lleno" /> Lleno / sin cupo</span>
+        <span><i className="punto sin-clase" /> Sin clase</span>
+      </div>
     </div>
   )
 }
