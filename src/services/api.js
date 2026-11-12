@@ -129,6 +129,48 @@ class Api {
     return request('/orders/me')
   }
 
+  /* ── PANEL DE ADMINISTRADOR (solo role ADMIN) ── */
+
+  /** GET /api/admin/stats — números del panel general */
+  getAdminStats() {
+    return request('/admin/stats')
+  }
+
+  /**
+   * Lista, crea, edita y borra en el panel: resource es
+   * 'courts' | 'products' | 'tournaments' | 'classes' | 'users'
+   */
+  adminList(resource) {
+    return request(`/admin/${resource}`)
+  }
+
+  adminCreate(resource, data) {
+    return request(`/admin/${resource}`, { method: 'POST', body: JSON.stringify(data) })
+  }
+
+  adminUpdate(resource, id, data) {
+    return request(`/admin/${resource}/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  }
+
+  adminDelete(resource, id) {
+    return request(`/admin/${resource}/${id}`, { method: 'DELETE' })
+  }
+
+  /** GET /api/admin/reservations — todas las reservas */
+  getAllReservations() {
+    return request('/admin/reservations')
+  }
+
+  /** GET /api/admin/orders — todos los pedidos */
+  getAllOrders() {
+    return request('/admin/orders')
+  }
+
+  /** PATCH /api/admin/orders/:id/status — PENDING, PAID o CANCELLED */
+  updateOrderStatus(id, status) {
+    return request(`/admin/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) })
+  }
+
   /* ── CANCHAS (API real) ─────────────────── */
 
   /** GET /api/courts — lista de canchas activas */

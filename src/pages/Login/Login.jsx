@@ -69,13 +69,15 @@ function Login() {
 
     try {
       // La API comprueba el email y la contraseña de verdad
-      await login(form.email, form.password)
+      const loggedUser = await login(form.email, form.password)
 
       if (rememberEmail) {
         localStorage.setItem('rememberedEmail', form.email)
       }
 
-      navigate(from, { replace: true, state: location.state })
+      // Si no venía de una página concreta, el administrador va directo a su panel
+      const destination = !location.state?.from && loggedUser?.role === 'ADMIN' ? '/admin' : from
+      navigate(destination, { replace: true, state: location.state })
 
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión. Inténtalo de nuevo.')

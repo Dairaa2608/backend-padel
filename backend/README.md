@@ -124,7 +124,14 @@ Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no lle
 | POST | `/api/orders` 🔒 | Comprar: descuenta el stock y calcula subtotal, envío y total en el servidor |
 | GET | `/api/orders/me` 🔒 | Mis pedidos |
 
+| GET | `/api/admin/stats` 🛡️ | Números del panel: ingresos, reservas, usuarios, poco stock… |
+| GET · POST · PATCH · DELETE | `/api/admin/courts`, `/products`, `/tournaments`, `/classes`, `/users` 🛡️ | Panel de administrador: listar, crear, editar y borrar |
+| GET | `/api/admin/reservations` · `/api/admin/orders` 🛡️ | Todas las reservas · todos los pedidos |
+| PATCH | `/api/admin/orders/:id/status` 🛡️ | Cambiar el estado de un pedido (si se cancela, el stock vuelve) |
+
 🔒 = requiere iniciar sesión · 🛡️ = solo administrador
+
+Lo que tiene historial (una cancha con reservas, un producto en pedidos, un usuario con compras…) no se borra: se desactiva, para no perder datos.
 
 ### Formato de las respuestas
 

@@ -14,6 +14,7 @@ import Profile from './pages/Profile/Profile'
 import Tournaments from './pages/Tournaments/Tournaments'
 import Clases from './pages/clases/clases'
 import Tienda from './pages/Tienda/Tienda'
+import Admin from './pages/Admin/Admin'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
@@ -41,8 +42,19 @@ const ProtectedRoute = ({ children }) => {
   return children
 }
 
+// Solo para administradores: si no ha iniciado sesión va al login; si es cliente, al inicio
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, loading, user } = useAuth()
+  const location = useLocation()
+
+  if (loading) return null
+  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />
+  if (user?.role !== 'ADMIN') return <Navigate to="/" replace />
+  return children
+}
+
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -62,11 +74,24 @@ const PublicRoute = ({ children }) => {
 
   // Redirect if already logged in and trying to access login page
   if (isAuthenticated && location.pathname === '/login') {
-    const from = location.state?.from?.pathname || '/reservar'
+    // El administrador va a su panel; los clientes, a reservar
+    const from = location.state?.from?.pathname || (user?.role === 'ADMIN' ? '/admin' : '/reservar')
     return <Navigate to={from} replace />
   }
 
   return children
+}
+
+// La barra y el pie de la web no se muestran en el panel de administrador (tiene los suyos)
+function Layout({ children }) {
+  const isAdmin = useLocation().pathname.startsWith('/admin')
+  return (
+    <>
+      {!isAdmin && <Navbar />}
+      {children}
+      {!isAdmin && <Footer />}
+    </>
+  )
 }
 
 function App() {
@@ -74,7 +99,7 @@ function App() {
     <ThemeProvider>
     <BrowserRouter>
       <AuthProvider>
-        <Navbar />
+        <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route
@@ -115,8 +140,16 @@ function App() {
           <Route path="/torneos" element={<Tournaments />} />
            <Route path="/clases" element={<Clases />} /> 
           <Route path="/tiendas" element={<Tienda />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            }
+          />
         </Routes>
-        <Footer />
+        </Layout>
       </AuthProvider>
     </BrowserRouter>
     </ThemeProvider>

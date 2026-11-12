@@ -85,6 +85,14 @@ function Navbar() {
           </li>
 
           <li><Link to="/contacto">Contacto</Link></li>
+          {user?.role === 'ADMIN' && (
+            <li>
+              <Link to="/admin" className="nav-admin-link">
+                <i className="material-icons left">admin_panel_settings</i>
+                Panel Admin
+              </Link>
+            </li>
+          )}
           <li>
             <button
               className="btn-theme-minimal"

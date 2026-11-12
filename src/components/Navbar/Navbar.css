@@ -214,3 +214,12 @@ nav.navbar-main .nav-wrapper.container {
   width: 92%;
   max-width: 1280px;
 }
+
+/* Enlace al panel (solo lo ven los administradores) */
+.nav-admin-link {
+  display: flex !important;
+  align-items: center;
+  color: #6ee7b7 !important;
+  font-weight: 600;
+}
+.nav-admin-link i { font-size: 1.1rem; margin-right: 4px !important; }

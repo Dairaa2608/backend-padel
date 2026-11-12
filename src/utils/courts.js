@@ -34,3 +34,5 @@ export const formatHour = (h) => {
 
 // Fecha de hoy en el computador del usuario, como "2026-11-15"
 export const todayString = () => new Date().toLocaleDateString('en-CA')
+// ¿Ya empezó esa hora de ese día? (hora del computador del usuario)
+export const isPastSlot = (date, hour) => new Date(`${date}T${String(hour).padStart(2, '0')}:00:00`) <= new Date()
