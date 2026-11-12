@@ -3,8 +3,8 @@
 //
 // ⚠️ Borra TODAS las inscripciones y clases (mensuales, sueltas y de cortesía) y deja:
 //   - todos los grupos de clases con sus cupos libres,
-//   - menos "Clases Regulares · 15 - 21 años", que queda LLENO con 5 alumnos de prueba
-//     (5 inscripciones mensuales de 2 personas = 10 de 10 cupos).
+//   - menos "Clases Regulares · 15 - 21 años", que queda LLENO con 10 alumnos de prueba
+//     (10 inscripciones mensuales individuales = 10 de 10 cupos).
 // Así se puede mostrar que un grupo lleno ya no deja inscribirse.
 import 'dotenv/config'
 import bcrypt from 'bcryptjs'
@@ -18,6 +18,11 @@ const DEMO_STUDENTS = [
   { name: 'Camila Rojas', email: 'demo3@padelzone.com' },
   { name: 'Mateo Díaz', email: 'demo4@padelzone.com' },
   { name: 'Sara Méndez', email: 'demo5@padelzone.com' },
+  { name: 'Julián Torres', email: 'demo6@padelzone.com' },
+  { name: 'Valentina Ruiz', email: 'demo7@padelzone.com' },
+  { name: 'Santiago Vargas', email: 'demo8@padelzone.com' },
+  { name: 'Isabella Castro', email: 'demo9@padelzone.com' },
+  { name: 'Daniel Herrera', email: 'demo10@padelzone.com' },
 ]
 
 async function main() {
@@ -46,20 +51,20 @@ async function main() {
     throw new Error('No se encontró el grupo de 15 - 21 años de Clases Regulares. Ejecuta antes npm run seed')
   }
 
-  const partySize = 2
-  const enrollments = students.map((user) => ({
+  // Cada inscripción mensual es de 1 persona: un alumno = un cupo
+  const enrollments = students.slice(0, group.capacity).map((user) => ({
     user: user._id,
     program: program._id,
     group: group._id,
     schedule: program.scheduleSlots[0],
     level: 'Intermedio',
     birthDate: new Date('2006-03-15'),
-    partySize,
+    partySize: 1,
   }))
   await ClassEnrollment.insertMany(enrollments)
 
   // El contador de cupos debe coincidir con las inscripciones creadas
-  const enrolled = Math.min(enrollments.length * partySize, group.capacity)
+  const enrolled = enrollments.length
   await ClassProgram.updateOne(
     { _id: program._id, 'groups._id': group._id },
     { $set: { 'groups.$.enrolledCount': enrolled } },
@@ -67,7 +72,7 @@ async function main() {
 
   console.log('✅ Datos de demostración listos')
   console.log(`   Todos los grupos con cupos libres, menos Clases Regulares · 15 - 21 años: ${enrolled}/${group.capacity} (lleno)`)
-  console.log(`   Alumnos de prueba: demo1@padelzone.com … demo5@padelzone.com · contraseña: ${DEMO_PASSWORD}`)
+  console.log(`   Alumnos de prueba: demo1@padelzone.com … demo${DEMO_STUDENTS.length}@padelzone.com · contraseña: ${DEMO_PASSWORD}`)
 }
 
 main()

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-// El pádel se juega en parejas: nunca 3 personas
-export const MONTHLY_PARTY_SIZES = [2, 4]
+// La inscripción mensual a un grupo es siempre individual (1 persona).
+// Las clases sueltas y de cortesía pueden ser para 1, 2 o 4 personas (nunca 3).
 export const CLASS_PARTY_SIZES = [1, 2, 4]
 
 // Precio de una clase suelta según cuántas personas vienen (en pesos)
@@ -11,16 +11,13 @@ const objectId = (message) => z.string().regex(/^[0-9a-f]{24}$/i, message)
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener el formato AAAA-MM-DD')
 const level = z.enum(['Principiante', 'Intermedio', 'Avanzado'], 'Elige tu nivel de juego')
 
-// Inscripción mensual a un grupo
+// Inscripción mensual a un grupo (siempre 1 persona)
 export const enrollSchema = z.object({
 programId: objectId('El programa no es válido'),
 groupId: objectId('El grupo no es válido'),
 schedule: z.string().min(1, 'Elige un horario'),
 level,
 birthDate: date,
-partySize: z.coerce
-    .number()
-    .refine((n) => MONTHLY_PARTY_SIZES.includes(n), 'La inscripción mensual es para 2 o 4 personas (parejas)'),
 })
 
 // Clase suelta o de cortesía en una fecha concreta

@@ -29,7 +29,6 @@ const coachPhotos = {
 
 const LEVELS = ['Principiante', 'Intermedio', 'Avanzado']
 const PARTY_SIZES = [1, 2, 4] // el pádel se juega en parejas: nunca 3
-const MONTHLY_PARTY_SIZES = [2, 4]
 
 // "2026-11-16" → "Lun, 16 de nov"
 const dateLabel = (date) => {
@@ -149,7 +148,7 @@ function Clases() {
       return
     }
     setModal({ mode, clase, grupo })
-    setForm({ nivel: '', fechaNacimiento: '', horario: clase.horarios[0], fecha: '', personas: mode === 'MONTHLY' ? 2 : 1 })
+    setForm({ nivel: '', fechaNacimiento: '', horario: clase.horarios[0], fecha: '', personas: 1 })
     setPayment(emptyPayment)
     setFormError('')
     setFechas([])
@@ -172,7 +171,7 @@ function Clases() {
   }
 
   const totalModal = modal
-    ? modal.mode === 'MONTHLY' ? modal.grupo.precio * form.personas : precioSuelta[form.personas]
+    ? modal.mode === 'MONTHLY' ? modal.grupo.precio : precioSuelta[form.personas]
     : 0
 
   const handleNextStep = () => {
@@ -180,8 +179,8 @@ function Clases() {
       setFormError('Completa tu nivel, fecha de nacimiento y horario.')
       return
     }
-    if (modal.mode === 'MONTHLY' && modal.grupo.cuposLibres < form.personas) {
-      setFormError(`Este grupo solo tiene ${modal.grupo.cuposLibres} cupos libres.`)
+    if (modal.mode === 'MONTHLY' && modal.grupo.cuposLibres < 1) {
+      setFormError('Este grupo ya no tiene cupos libres.')
       return
     }
     if (modal.mode === 'SINGLE' && (!form.fecha || !form.horario)) {
@@ -205,7 +204,7 @@ function Clases() {
       if (mode === 'MONTHLY') {
         await api.enrollInClass({
           programId: clase.id, groupId: grupo.id, schedule: form.horario,
-          level: form.nivel, birthDate: form.fechaNacimiento, partySize: form.personas,
+          level: form.nivel, birthDate: form.fechaNacimiento,
         })
       } else {
         await api.bookClass({
@@ -390,7 +389,7 @@ function Clases() {
               <div className="clase-grupos">
                 {clase.grupos.map(grupo => {
                   const lleno = grupo.cuposLibres === 0
-                  const mensualPosible = grupo.cuposLibres >= Math.min(...MONTHLY_PARTY_SIZES)
+                  const mensualPosible = grupo.cuposLibres >= 1
                   return (
                     <div className={`clase-grupo ${lleno ? 'sin-cupo' : ''}`} key={grupo.id}>
                       <div className="grupo-header">
@@ -430,7 +429,7 @@ function Clases() {
                         onClick={() => openModal('MONTHLY', clase, grupo)}
                       >
                         <i className="material-icons">how_to_reg</i>
-                        Inscripción mensual · {formatPrice(grupo.precio)} c/u
+                        Inscripción mensual · {formatPrice(grupo.precio)}
                       </button>
                       <button
                         className="btn-suelta"
@@ -476,7 +475,7 @@ function Clases() {
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">group</i>
-                        <span>Grupo: {groupName(ins.program, ins.group)} · {peopleLabel(ins.partySize)}</span>
+                        <span>Grupo: {groupName(ins.program, ins.group)}</span>
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">fitness_center</i>
@@ -578,20 +577,15 @@ function Clases() {
                   <input type="text" value={`${user?.name || ''} · ${user?.email || ''}`} disabled />
                 </div>
 
-                <div className="tournament-form-field">
-                  <label>¿Cuántas personas vienen?</label>
-                  <PersonasSelector
-                    opciones={modal.mode === 'MONTHLY' ? MONTHLY_PARTY_SIZES : PARTY_SIZES}
-                    value={form.personas}
-                    onChange={changePersonas}
-                    disabledIf={(n) => modal.mode === 'MONTHLY' && n > modal.grupo.cuposLibres}
-                  />
-                  <small className="personas-ayuda">
-                    {modal.mode === 'MONTHLY'
-                      ? `Se juega en parejas: 2 o 4 personas · ${formatPrice(modal.grupo.precio)} por persona al mes`
-                      : `1 persona ${formatPrice(precioSuelta[1])} · 2 personas ${formatPrice(precioSuelta[2])} · 4 personas ${formatPrice(precioSuelta[4])}`}
-                  </small>
-                </div>
+                {modal.mode === 'SINGLE' && (
+                  <div className="tournament-form-field">
+                    <label>¿Cuántas personas vienen?</label>
+                    <PersonasSelector opciones={PARTY_SIZES} value={form.personas} onChange={changePersonas} />
+                    <small className="personas-ayuda">
+                      {`1 persona ${formatPrice(precioSuelta[1])} · 2 personas ${formatPrice(precioSuelta[2])} · 4 personas ${formatPrice(precioSuelta[4])}`}
+                    </small>
+                  </div>
+                )}
 
                 {modal.mode === 'SINGLE' && (
                   <div className="tournament-form-field">
@@ -651,10 +645,12 @@ function Clases() {
                     <span>{modal.mode === 'MONTHLY' ? 'Inscripción mensual' : `Clase suelta · ${dateLabel(form.fecha)}`}</span>
                     <span>{modal.clase.nombre}</span>
                   </div>
-                  <div className="payment-summary-row">
-                    <span>Personas</span>
-                    <span>{form.personas}</span>
-                  </div>
+                  {modal.mode === 'SINGLE' && (
+                    <div className="payment-summary-row">
+                      <span>Personas</span>
+                      <span>{form.personas}</span>
+                    </div>
+                  )}
                   <div className="payment-summary-row total">
                     <span>Total</span>
                     <span style={{ color: modal.clase.color }}>{formatPrice(totalModal)}</span>

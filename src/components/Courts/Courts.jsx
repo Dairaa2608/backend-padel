@@ -1,65 +1,24 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import { api } from '../../services/api'
+import { getCourtImage, getCourtTypeLabel, formatPrice } from '../../utils/courts'
 import './Courts.css'
 
-import c1 from '../../img/Cancha1.jpg'
-import c2 from '../../img/Cancha2.jpg'
-import c3 from '../../img/Cancha3.jpg'
-import c4 from '../../img/Cancha4.jpg'
-import c5 from '../../img/Cancha5.jpg'
-
-const courts = [
-  {
-    img: c1,
-    name: 'Cancha Central',
-    price: '$120.000/hora',
-    desc: 'Cancha principal con césped sintético de última generación',
-    type: 'Exterior',
-    typeIcon: 'wb_sunny',
-    features: ['Iluminación LED', 'Césped sintético premium', 'Vestuarios incluidos']
-  },
-  {
-    img: c2,
-    name: 'Cancha Premium',
-    price: '$160.000/hora',
-    desc: 'Cancha techada con climatización y iluminación LED',
-    type: 'Interior',
-    typeIcon: 'home',
-    features: ['Climatización', 'Cristal panorámico', 'Suelo profesional']
-  },
-  {
-    img: c3,
-    name: 'Cancha Recreativa',
-    price: '$100.000/hora',
-    desc: 'Perfecta para principiantes y partidos casuales',
-    type: 'Exterior',
-    typeIcon: 'wb_sunny',
-    features: ['Ideal principiantes', 'Ambiente relajado', 'Precio accesible']
-  },
-  {
-    img: c4,
-    name: 'Cancha Profesional',
-    price: '$180.000/hora',
-    desc: 'Diseñada para torneos y jugadores de alto rendimiento',
-    type: 'Interior',
-    typeIcon: 'home',
-    features: ['Normas oficiales', 'Gradas para público', 'Iluminación HD']
-  },
-  {
-    img: c5,
-    name: 'Cancha Express',
-    price: '$90.000/hora',
-    desc: 'Ideal para partidos rápidos en horarios de menor demanda',
-    type: 'Exterior',
-    typeIcon: 'wb_sunny',
-    features: ['Acceso rápido', 'Sin reserva mínima', 'Estacionamiento cercano']
-  }
-]
+// Convierte una cancha de la API al formato que usa el carrusel
+const toViewCourt = (court) => ({
+  id: court._id,
+  img: getCourtImage(court),
+  name: court.name,
+  price: `${formatPrice(court.pricePerHour)}/hora`,
+  desc: court.description,
+  type: getCourtTypeLabel(court.type),
+  typeIcon: court.type === 'INDOOR' ? 'home' : 'wb_sunny',
+  features: court.features ?? [],
+})
 
 const VISIBLE = 3
 const CARD_GAP = 32
-const cloned = [...courts.slice(-VISIBLE), ...courts, ...courts.slice(0, VISIBLE)]
 
 function Courts() {
   const viewportRef = useRef(null)
@@ -70,6 +29,18 @@ function Courts() {
   const { isAuthenticated } = useAuth()
   const [selectedCourt, setSelectedCourt] = useState(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [courts, setCourts] = useState([])
+  const [loadError, setLoadError] = useState('')
+
+  // Las canchas vienen de la API (GET /api/courts)
+  useEffect(() => {
+    api.getCourts()
+      .then((list) => setCourts(list.map(toViewCourt)))
+      .catch((err) => setLoadError(err.message))
+  }, [])
+
+  // Copias al principio y al final para que el carrusel dé la vuelta sin saltos
+  const cloned = courts.length ? [...courts.slice(-VISIBLE), ...courts, ...courts.slice(0, VISIBLE)] : []
 
   // Calcular ancho al montar y al redimensionar
   useEffect(() => {
@@ -109,9 +80,9 @@ function Courts() {
       setAnimated(false)
       setCurrent(courts.length + VISIBLE - 1)
     }
-  }, [current])
+  }, [current, courts.length])
 
-  const realIndex = (current - VISIBLE + courts.length) % courts.length
+  const realIndex = courts.length ? (current - VISIBLE + courts.length) % courts.length : 0
 
   const openModal = (court) => {
     setSelectedCourt(court)
@@ -141,6 +112,14 @@ function Courts() {
         </div>
       </div>
 
+      {!courts.length && (
+        <p className="courts-loading">
+          {loadError ? `No se pudieron cargar las canchas: ${loadError}` : 'Cargando canchas…'}
+        </p>
+      )}
+
+      {courts.length > 0 && (
+      <>
       <div className="courts-carousel-wrapper">
 
         <button className="courts-arrow left" onClick={() => move(-1)}>
@@ -159,7 +138,7 @@ function Courts() {
             {cloned.map((court, i) => (
               <div
                 className="court-card"
-                key={i}
+                key={`${court.id}-${i}`}
                 style={{ minWidth: `${cardWidth}px` }}
                 onClick={() => openModal(court)}
               >
@@ -213,14 +192,17 @@ function Courts() {
       </div>
 
       <div className="courts-dots">
-        {courts.map((_, i) => (
+        {courts.map((court, i) => (
           <span
-            key={i}
+            key={court.id}
             className={`courts-dot ${i === realIndex ? 'active' : ''}`}
             onClick={() => { setAnimated(true); setCurrent(i + VISIBLE) }}
           />
         ))}
       </div>
+
+      </>
+      )}
 
       <div className="button-container"> 
         <button className="btn-outline-courts" onClick={() => window.location.href = '/canchas'}>

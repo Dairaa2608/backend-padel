@@ -1156,3 +1156,40 @@
     border-radius: 18px;
   }
 }
+
+/* ── Stock y avisos del pago (API real) ── */
+.product-stock {
+  display: block;
+  margin: -4px 0 10px;
+  color: #e65100;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.checkout-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 12px;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.checkout-note .material-icons {
+  font-size: 18px;
+  color: #0a7c5c;
+}
+
+.checkout-error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fdecea;
+  color: #c62828;
+  font-size: 0.9rem;
+}

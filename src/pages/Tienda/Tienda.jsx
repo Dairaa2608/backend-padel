@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './Tienda.css'
 import { api } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
+import { toViewProduct } from '../../utils/products'
 
+// Solo para mostrar el total aproximado: el total real lo calcula la API
 const SHIPPING = 15000
 const FREE_SHIPPING_THRESHOLD = 300000
+
+const PAYMENT_LABELS = { CARD: 'Tarjeta', PSE: 'PSE', CASH: 'Contraentrega' }
 
 function tiendaKey(key, extra = '') {
   return `tienda-${key}${extra}`
@@ -14,100 +20,95 @@ function tiendaKey(key, extra = '') {
    ═══════════════════════ */
 
 export default function Tienda() {
+  const navigate = useNavigate()
+  const { isAuthenticated, user } = useAuth()
+
   const [products, setProducts] = useState([])
-  const [cartItems, setCartItems] = useState([]) // { id, name, desc, price, badge, badgeColor, img, qty }
+  const [cart, setCart] = useState(() => api.getCart()) // [{ productId, qty }] guardado en el navegador
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const [cartOpen, setCartOpen] = useState(false)
   const [toast, setToast] = useState(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [purchaseDone, setPurchaseDone] = useState(false)
+  const [purchase, setPurchase] = useState(null) // pedido creado por la API
 
-  /* ── Cargar productos al montar ── */
-  useEffect(() => {
+  /* ── Productos (con su stock) desde la API ── */
+  const loadProducts = useCallback(() =>
     api.getProducts()
-      .then(setProducts)
+      .then((list) => setProducts(list.map(toViewProduct)))
       .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [])
+      .finally(() => setLoading(false)), [])
 
-  /* ── Cargar carrito al montar ── */
-  useEffect(() => {
-    api.getCart().then(setCartItems).catch(() => {})
-  }, [])
+  useEffect(() => { loadProducts() }, [loadProducts])
 
-  /* ── Agregar al carrito ── */
-  const addToCart = useCallback(async (product) => {
-    try {
-      const updated = await api.addToCart({ productId: product.id, qty: 1 })
-      setCartItems(updated)
-      setToast({ productName: product.name })
-      if (!cartOpen) setCartOpen(true)
-      setTimeout(() => setToast(null), 2800)
-    } catch (err) {
-      console.error('Error al agregar al carrito:', err)
+  /* ── El carrito con los datos del producto (precio y stock actuales) ── */
+  const cartItems = cart
+    .map(({ productId, qty }) => {
+      const product = products.find((p) => p.id === productId)
+      return product && !product.outOfStock ? { ...product, qty: Math.min(qty, product.stock) } : null
+    })
+    .filter(Boolean)
+
+  const showToast = (text) => {
+    setToast(text)
+    setTimeout(() => setToast(null), 2800)
+  }
+
+  /* ── Agregar al carrito (sin pasar del stock) ── */
+  const addToCart = (product) => {
+    const inCart = cartItems.find((i) => i.id === product.id)?.qty ?? 0
+    if (inCart >= product.stock) {
+      showToast(`Solo hay ${product.stock} unidades de "${product.name}"`)
+      return
     }
-  }, [cartOpen])
+    setCart(api.addToCart({ productId: product.id, qty: 1 }))
+    showToast(`"${product.name}" agregado al carrito`)
+    if (!cartOpen) setCartOpen(true)
+  }
 
   /* ── Eliminar del carrito ── */
-  const removeFromCart = useCallback(async (id) => {
-    try {
-      const updated = await api.removeFromCart(id)
-      setCartItems(updated)
-    } catch (err) {
-      console.error('Error al eliminar del carrito:', err)
-    }
-  }, [])
+  const removeFromCart = (id) => setCart(api.removeFromCart(id))
 
   /* ── Modificar cantidad ── */
-  const changeQty = useCallback(async (id, delta) => {
-    try {
-      const current = cartItems.find((i) => i.id === id)
-      if (!current) return
-      const newQty = current.qty + delta
-      const updated = await api.updateQty({ productId: id, qty: newQty })
-      setCartItems(updated)
-    } catch (err) {
-      console.error('Error al cambiar cantidad:', err)
-    }
-  }, [cartItems])
+  const changeQty = (id, delta) => {
+    const current = cartItems.find((i) => i.id === id)
+    if (!current) return
+    const newQty = Math.min(current.qty + delta, current.stock)
+    setCart(api.updateQty({ productId: id, qty: newQty }))
+  }
 
   /* ── Vaciar carrito ── */
-  const clearCart = useCallback(async () => {
-    try {
-      await api.clearCart()
-      setCartItems([])
-    } catch (err) {
-      console.error('Error al vaciar el carrito:', err)
-    }
-  }, [])
+  const clearCart = () => setCart(api.clearCart())
 
-  /* ── Totales ── */
+  /* ── Totales (aproximados: la API los vuelve a calcular) ── */
   const subtotal = cartItems.reduce((s, item) => s + item.price * item.qty, 0)
   const shippingCost = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : cartItems.length ? SHIPPING : 0
   const total = subtotal + shippingCost
 
-  /* ── Checkout ── */
-  const handleCheckout = useCallback(() => {
+  /* ── Checkout: para comprar hay que iniciar sesión ── */
+  const handleCheckout = () => {
     setCartOpen(false)
-    setCheckoutOpen(true)
-  }, [])
-
-  const handlePay = useCallback(async () => {
-    try {
-      await api.createOrder({ items: cartItems, shipping: shippingCost })
-      setCheckoutOpen(false)
-      setCartItems([])
-      setPurchaseDone(true)
-      setTimeout(() => {
-        setPurchaseDone(false)
-        setCheckoutOpen(false)
-      }, 3500)
-    } catch (err) {
-      console.error('Error en el pago:', err)
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: '/tiendas' } })
+      return
     }
-  }, [cartItems, shippingCost])
+    setCheckoutOpen(true)
+  }
+
+  // Envía el pedido. Si falla (por ejemplo, se agotó un producto), el error se muestra en el formulario.
+  const handlePay = async ({ address, phone, method }) => {
+    try {
+      const order = await api.createOrder({ items: cartItems.map((i) => ({ productId: i.id, qty: i.qty })), address, phone, paymentMethod: method })
+      setCart(api.clearCart())
+      setCheckoutOpen(false)
+      setPurchase(order)
+      setTimeout(() => setPurchase(null), 5000)
+    } finally {
+      // El stock cambió (por esta compra o por la de otra persona): se vuelve a pedir
+      loadProducts()
+    }
+  }
 
   /* ═══════════════════════
      RENDER
@@ -137,7 +138,7 @@ export default function Tienda() {
 
   return (
     <section className="tienda-page">
-      {toast && <Toast message={toast.productName} />}
+      {toast && <Toast message={toast} />}
 
       {/* ── Header ── */}
       <div className="tienda-header">
@@ -180,7 +181,6 @@ export default function Tienda() {
         subtotal={subtotal}
         shippingCost={shippingCost}
         total={total}
-        freeShippingThreshold={FREE_SHIPPING_THRESHOLD}
         onRemove={removeFromCart}
         onChangeQty={changeQty}
         onClear={clearCart}
@@ -196,11 +196,12 @@ export default function Tienda() {
         subtotal={subtotal}
         shippingCost={shippingCost}
         total={total}
+        user={user}
         onConfirmPay={handlePay}
       />
 
       {/* ── Purchase success ── */}
-      {purchaseDone && <PurchaseSuccess />}
+      {purchase && <PurchaseSuccess order={purchase} formatPrice={formatPrice} />}
     </section>
   )
 }
@@ -218,7 +219,7 @@ function formatPrice(price) {
    ═══════════════════════════════════════ */
 
 function ProductCard({ product, formatPrice, onAddToCart }) {
-  const isOutOfStock = product.badge === 'Agotado'
+  const isOutOfStock = product.outOfStock
 
   return (
     <div className={`product-card ${isOutOfStock ? 'product-card--disabled' : ''}`}>
@@ -235,7 +236,10 @@ function ProductCard({ product, formatPrice, onAddToCart }) {
 
       <div className="product-body">
         <h3 className="product-name">{product.name}</h3>
-        <p className="product-description">{product.desc || product.description}</p>
+        <p className="product-description">{product.desc}</p>
+        {!isOutOfStock && product.stock <= 5 && (
+          <small className="product-stock">¡Últimas {product.stock} unidades!</small>
+        )}
         <div className="product-footer">
           <span className="product-price">{formatPrice(product.price)} COP</span>
           {isOutOfStock ? (
@@ -257,7 +261,7 @@ function Toast({ message }) {
   return (
     <div className="tienda-toast">
       <i className="material-icons">check_circle</i>
-      <span>"{message}" agregado al carrito</span>
+      <span>{message}</span>
     </div>
   )
 }
@@ -272,7 +276,6 @@ function CartDrawer({
   subtotal,
   shippingCost,
   total,
-  freeShippingThreshold,
   onRemove,
   onChangeQty,
   onClear,
@@ -323,6 +326,8 @@ function CartDrawer({
                         <span className="qty-value">{item.qty}</span>
                         <button
                           className="qty-btn qty-plus"
+                          disabled={item.qty >= item.stock}
+                          title={item.qty >= item.stock ? 'No hay más unidades disponibles' : undefined}
                           onClick={() => onChangeQty(item.id, 1)}
                           aria-label="Aumentar cantidad"
                         >
@@ -403,29 +408,41 @@ function CartDrawer({
 
 /* ── Checkout modal ──────────────────────── */
 
-function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCost, total, onConfirmPay }) {
+function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCost, total, user, onConfirmPay }) {
   const [step, setStep] = useState('summary')
-  const [form, setForm] = useState({ name: '', email: '', phone: '', address: '', method: 'card' })
+  const [form, setForm] = useState({ phone: user?.phone || '', address: '', method: 'CARD' })
+  const [payError, setPayError] = useState('')
 
   if (!open) return null
 
   const handleNext = () => step === 'summary' && setStep('form')
   const handlePrev = () => setStep('summary')
 
-  const handleSubmit = (e) => {
+  const handleClose = () => {
+    setStep('summary')
+    setPayError('')
+    onClose()
+  }
+
+  // El pago es simulado: no se piden ni se envían datos de tarjeta
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setPayError('')
     setStep('processing')
-    setTimeout(() => {
-      onConfirmPay()
+    try {
+      await onConfirmPay(form)
       setStep('summary')
-      setForm({ name: '', email: '', phone: '', address: '', method: 'card' })
-    }, 2500)
+      setForm({ phone: user?.phone || '', address: '', method: 'CARD' })
+    } catch (err) {
+      setPayError(err.message)
+      setStep('form')
+    }
   }
 
   return (
-    <div className="checkout-overlay" onClick={onClose}>
+    <div className="checkout-overlay" onClick={handleClose}>
       <section className="checkout-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="checkout-close-btn" onClick={onClose} aria-label="Cerrar">
+        <button className="checkout-close-btn" onClick={handleClose} aria-label="Cerrar">
           <i className="material-icons">close</i>
         </button>
 
@@ -472,26 +489,12 @@ function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCo
             <form className="checkout-form" onSubmit={handleSubmit}>
               <div className="form-group">
                 <label htmlFor="ck-name">Nombre completo</label>
-                <input
-                  id="ck-name"
-                  type="text"
-                  required
-                  placeholder="Tu nombre"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
+                <input id="ck-name" type="text" value={user?.name || ''} disabled />
               </div>
 
               <div className="form-group">
                 <label htmlFor="ck-email">Correo electrónico</label>
-                <input
-                  id="ck-email"
-                  type="email"
-                  required
-                  placeholder="tucorreo@ejemplo.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
+                <input id="ck-email" type="email" value={user?.email || ''} disabled />
               </div>
 
               <div className="form-group">
@@ -522,9 +525,9 @@ function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCo
                 <label>Método de pago</label>
                 <div className="payment-methods">
                   {[
-                    { value: 'card', icon: 'credit_card', label: 'Tarjeta' },
-                    { value: 'pse', icon: 'account_balance', label: 'PSE' },
-                    { value: 'cash', icon: 'payments', label: 'Contraentrega' },
+                    { value: 'CARD', icon: 'credit_card', label: PAYMENT_LABELS.CARD },
+                    { value: 'PSE', icon: 'account_balance', label: PAYMENT_LABELS.PSE },
+                    { value: 'CASH', icon: 'payments', label: PAYMENT_LABELS.CASH },
                   ].map((m) => (
                     <label
                       key={m.value}
@@ -543,6 +546,13 @@ function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCo
                   ))}
                 </div>
               </div>
+
+              <p className="checkout-note">
+                <i className="material-icons">info</i>
+                Pago simulado: no se realiza ningún cobro y no se piden datos de tarjeta.
+              </p>
+
+              {payError && <p className="checkout-error">{payError}</p>}
 
               <div className="checkout-actions">
                 <button type="button" className="btn-secondary" onClick={handlePrev}>
@@ -571,7 +581,8 @@ function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCo
 
 /* ── Purchase success overlay ───────────── */
 
-function PurchaseSuccess() {
+function PurchaseSuccess({ order, formatPrice }) {
+  const number = order._id.slice(-6).toUpperCase()
   return (
     <div className="success-overlay">
       <div className="success-box">
@@ -579,7 +590,13 @@ function PurchaseSuccess() {
           <i className="material-icons">check_circle</i>
         </div>
         <h2>¡Compra realizada!</h2>
-        <p>Tu pedido ha sido procesado exitosamente.<br />Recibirás un correo de confirmación pronto.</p>
+        <p>
+          Pedido <strong>#{number}</strong> · Total <strong>{formatPrice(order.total)} COP</strong>
+          <br />
+          {order.paymentMethod === 'CASH'
+            ? 'Pagarás al recibir el pedido.'
+            : `Pago simulado con ${PAYMENT_LABELS[order.paymentMethod]}: no se realizó ningún cobro real.`}
+        </p>
       </div>
     </div>
   )

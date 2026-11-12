@@ -1,32 +1,23 @@
-import imgPala from '../img/adidas-pala-de-padel-cross-it-light-3.4-2025_1.webp'
-import imgPelotas from '../img/tubo-de-3-bolas-de-padel-presurizadas-kuikma-pb-club.jpg'
-import imgMuñequera from '../img/munequera-y-cinturon.webp'
-import imgPaletero from '../img/paletero pro.webp'
-import imgCamiseta from '../img/camisa dry fit.jpg'
-import imgGrip from '../img/grip antidezlizante.jpg'
-
 /* ══════════════════════════════════════════════════
-   MOCK DATABASE
+   CARRITO (se guarda en el navegador)
    ══════════════════════════════════════════════════ */
+// El carrito es solo una lista de { productId, qty } en localStorage.
+// Los precios y el stock siempre vienen de la API; el total final lo calcula el servidor.
 
-const _products = [
-  { id: 1, name: 'Pala Profesional Adidas',    desc: 'Pala de carbono para jugadores avanzados. Máximo control y potencia en cada golpe.', price: 280000, badge: 'Nuevo',     badgeColor: '#0a7c5c', img: imgPala },
-  { id: 2, name: 'Pack de Pelotas Oficiales',  desc: 'Pack con 3 pelotas de pádel homologadas para competición. Duración prolongada.',            price:  35000, badge: 'Oferta',    badgeColor: '#e53935', img: imgPelotas },
-  { id: 3, name: 'Muñequera + Cinturón',       desc: 'Set de muñequeras técnicas y cinturón lumbar ajustable para máxima sujeción.',             price:  68000, badge: null,       badgeColor: null,      img: imgMuñequera },
-  { id: 4, name: 'Paletero Deportivo Wilson',  desc: 'Bolsa de palas amplia con compartimentos laterales y bolsillo interior.',                 price: 120000, badge: 'Destacado', badgeColor: '#1565c0', img: imgPaletero },
-  { id: 5, name: 'Camiseta Técnica Dry-Fit',   desc: 'Camiseta transpirable de alto rendimiento. Diseño exclusivo de PadelZone.',              price:  55000, badge: null,       badgeColor: null,      img: imgCamiseta },
-  { id: 6, name: 'Grip Antideslizante Premium',desc: 'Pack de 3 grips antideslizantes de alta adherencia. Reducen la vibración.',               price:  22000, badge: 'Agotado',  badgeColor: '#757575', img: imgGrip },
-]
-
-// Carrito persistido en localStorage
-let _cart = []
 const CART_KEY = 'padelzone_cart'
 
 const loadCart = () => {
-  try { _cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]') } catch { _cart = [] }
+  try {
+    const cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]')
+    // Los carritos antiguos (de los datos de prueba) usaban ids numéricos: se descartan
+    return Array.isArray(cart) ? cart.filter((c) => typeof c.productId === 'string' && c.qty > 0) : []
+  } catch {
+    return []
+  }
 }
-const saveCart = () => {
-  localStorage.setItem(CART_KEY, JSON.stringify(_cart))
+const saveCart = (cart) => {
+  localStorage.setItem(CART_KEY, JSON.stringify(cart))
+  return cart
 }
 
 /* ══════════════════════════════════════════════════
@@ -63,134 +54,79 @@ async function request(path, options = {}) {
 }
 
 /* ══════════════════════════════════════════════════
-   HELPERS (datos simulados)
-   ══════════════════════════════════════════════════ */
-
-function _delay(ms = 350) {
-  return new Promise((r) => setTimeout(r, ms + Math.random() * 250))
-}
-
-function _page(total, page, limit) {
-  const start = (page - 1) * limit
-  return { data: total.slice(start, start + limit), total: total.length, page, limit }
-}
-
-function _status(error, fallback = 500) {
-  return error?.status || fallback
-}
-
-/* ══════════════════════════════════════════════════
    API CLASS
    ══════════════════════════════════════════════════ */
-//   Todos los métodos devuelven Promise y simulan latencia de red
 
 class Api {
 
-  /* ── PRODUCTOS ──────────────────────────────── */
+  /* ── PRODUCTOS (API real) ──────────────── */
 
-  /** GET /api/products — lista todos los productos */
+  /** GET /api/products — productos activos con su stock */
   getProducts() {
-    return _delay(350).then(() => _products.map((p) => ({ ...p })))
+    return request('/products')
   }
 
-  /** GET /api/products/:id — producto por id */
+  /** GET /api/products/:id — un producto */
   getProductById(id) {
-    return _delay(200).then(() => {
-      const p = _products.find((x) => x.id === id)
-      if (!p) throw Object.assign(new Error('Producto no encontrado'), { status: 404 })
-      return { ...p }
-    })
+    return request(`/products/${id}`)
   }
 
-  /* ── CARRITO ────────────────────────────────── */
+  /* ── CARRITO (en el navegador) ───────────── */
 
-  /** GET /api/cart — devuelve el carrito con datos de producto */
+  /** Devuelve [{ productId, qty }] */
   getCart() {
-    return _delay(200).then(() => {
-      loadCart()
-      return _cart.map(({ productId, qty }) => {
-        const p = _products.find((x) => x.id === productId)
-        return p ? { ...p, qty } : null
-      }).filter(Boolean)
-    })
+    return loadCart()
   }
 
-  /** POST /api/cart — agrega o incrementa un producto */
+  /** Agrega un producto o suma una unidad más */
   addToCart({ productId, qty = 1 }) {
-    return _delay(200).then(() => {
-      loadCart()
-      const idx = _cart.findIndex((c) => c.productId === productId)
-      if (idx >= 0) {
-        _cart[idx].qty += qty
-      } else {
-        _cart.push({ productId, qty })
-      }
-      saveCart()
-      return _cart.map(({ productId: pid, qty: q }) => {
-        const p = _products.find((x) => x.id === pid)
-        return p ? { ...p, qty: q } : null
-      }).filter(Boolean)
-    })
+    const cart = loadCart()
+    const item = cart.find((c) => c.productId === productId)
+    if (item) item.qty += qty
+    else cart.push({ productId, qty })
+    return saveCart(cart)
   }
 
-  /** PUT /api/cart/:id — actualiza cantidad (qty === 0 elimina el producto) */
+  /** Cambia la cantidad (0 o menos lo quita del carrito) */
   updateQty({ productId, qty }) {
-    return _delay(150).then(() => {
-      loadCart()
-      const idx = _cart.findIndex((c) => c.productId === productId)
-      if (idx >= 0) {
-        if (qty <= 0) {
-          _cart.splice(idx, 1)
-        } else {
-          _cart[idx].qty = qty
-        }
-      }
-      saveCart()
-      return _cart.map(({ productId: pid, qty: q }) => {
-        const p = _products.find((x) => x.id === pid)
-        return p ? { ...p, qty: q } : null
-      }).filter(Boolean)
-    })
+    const cart = loadCart()
+      .map((c) => (c.productId === productId ? { ...c, qty } : c))
+      .filter((c) => c.qty > 0)
+    return saveCart(cart)
   }
 
-  /** DELETE /api/cart/:id — elimina un producto del carrito */
+  /** Quita un producto del carrito */
   removeFromCart(productId) {
-    return _delay(150).then(() => {
-      loadCart()
-      _cart = _cart.filter((c) => c.productId !== productId)
-      saveCart()
-      return _cart.map(({ productId: pid, qty: q }) => {
-        const p = _products.find((x) => x.id === pid)
-        return p ? { ...p, qty: q } : null
-      }).filter(Boolean)
-    })
+    return saveCart(loadCart().filter((c) => c.productId !== productId))
   }
 
-  /** DELETE /api/cart — vacía el carrito completamente */
+  /** Vacía el carrito */
   clearCart() {
-    return _delay(150).then(() => {
-      _cart = []
-      saveCart()
-      return []
-    })
+    return saveCart([])
   }
 
-  /* ── CHECKOUT ──────────────────────────────── */
+  /* ── PEDIDOS (API real) ──────────────────── */
 
   /**
-   * POST /api/checkout
-   * @param {{items:Array,shipping:number,method:string}}
-   * @returns {Promise<{orderId:string,status:string,total:number,createdAt:string}>}
+   * POST /api/orders — compra lo que hay en el carrito.
+   * Solo se envía qué productos y cuántos: la API pone los precios, el envío y el total,
+   * y descuenta el stock. El pago es simulado (no se envían datos de tarjeta).
    */
-  createOrder({ items, shipping = 0, method = 'card' }) {
-    return _delay(1200).then(() => {
-      const orderId = `PZ-${Date.now().toString(36).toUpperCase()}`
-      const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0)
-      const total = subtotal + shipping
-      _cart = []
-      saveCart()
-      return { orderId, status: 'confirmed', method, total, subtotal, shipping, createdAt: new Date().toISOString() }
+  createOrder({ items, address, phone, paymentMethod }) {
+    return request('/orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        items: items.map(({ productId, qty }) => ({ productId, quantity: qty })),
+        address,
+        phone,
+        paymentMethod,
+      }),
     })
+  }
+
+  /** GET /api/orders/me — mis pedidos */
+  getMyOrders() {
+    return request('/orders/me')
   }
 
   /* ── CANCHAS (API real) ─────────────────── */
@@ -242,11 +178,11 @@ class Api {
     return request(`/classes/${programId}/groups/${groupId}/dates`)
   }
 
-  /** POST /api/classes/enrollments — inscripción mensual (2 o 4 personas) */
-  enrollInClass({ programId, groupId, schedule, level, birthDate, partySize }) {
+  /** POST /api/classes/enrollments — inscripción mensual (siempre individual) */
+  enrollInClass({ programId, groupId, schedule, level, birthDate }) {
     return request('/classes/enrollments', {
       method: 'POST',
-      body: JSON.stringify({ programId, groupId, schedule, level, birthDate, partySize }),
+      body: JSON.stringify({ programId, groupId, schedule, level, birthDate }),
     })
   }
 

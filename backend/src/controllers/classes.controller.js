@@ -98,11 +98,12 @@ export async function listUpcomingDates(req, res) {
   })
 }
 
-/* ── Inscripción mensual (2 o 4 personas) ───────────── */
+/* ── Inscripción mensual (siempre individual) ───────── */
 
 // POST /api/classes/enrollments
 export async function enroll(req, res) {
-  const { programId, groupId, schedule, level, birthDate, partySize } = req.body
+  const { programId, groupId, schedule, level, birthDate } = req.body
+  const partySize = 1 // la inscripción mensual es siempre para una persona
   const { program, group } = await findProgramAndGroup(programId, groupId)
   checkSchedule(program, schedule)
 
@@ -130,7 +131,7 @@ export async function enroll(req, res) {
   )
   if (!reserved || maxAllowed < 0) {
     if (reserved) await releaseMonthlySpots(program._id, group._id, partySize)
-    throw new AppError(409, 'GROUP_FULL', `No quedan cupos para ${partySize} personas en este grupo`)
+    throw new AppError(409, 'GROUP_FULL', 'No quedan cupos en este grupo')
   }
 
   try {

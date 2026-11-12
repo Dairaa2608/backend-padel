@@ -83,6 +83,7 @@ Para apagarla: **Ctrl + C**.
 | `npm run dev` | Arranca la API en modo desarrollo: se reinicia sola al guardar un archivo |
 | `npm start` | Arranca la API (modo producción, sin reinicio automático) |
 | `npm run seed` | Crea los índices y carga los datos iniciales (se puede ejecutar varias veces sin duplicar) |
+| `npm run seed:demo` | Datos para la presentación: vacía las clases, crea 10 alumnos de prueba (`demo1@padelzone.com` … `demo10@padelzone.com`, contraseña `Demo12345`) y deja lleno el grupo de 15 - 21 años de Clases Regulares |
 
 ## Endpoints
 
@@ -91,6 +92,29 @@ Para apagarla: **Ctrl + C**.
 | GET | `/api/health` | Estado de la API y de la conexión a MongoDB |
 | GET | `/api/courts` | Canchas activas |
 | GET | `/api/courts/:id` | Una cancha |
+| GET | `/api/courts/:id/availability?date=` | Horas libres y ocupadas de una cancha ese día |
+| POST | `/api/auth/register` · `/login` · `/logout` | Cuenta y sesión (cookie `token`) |
+| GET | `/api/auth/me` 🔒 | Usuario de la sesión |
+| PATCH | `/api/users/me` 🔒 | Editar mi perfil |
+| GET | `/api/users` 🛡️ | Lista de usuarios |
+| POST | `/api/reservations` 🔒 | Reservar una cancha (precio calculado por la API) |
+| GET | `/api/reservations/me` 🔒 · `/api/reservations` 🛡️ | Mis reservas · todas |
+| PATCH | `/api/reservations/:id/cancel` 🔒 | Cancelar una reserva |
+| GET | `/api/classes` | Programas de clases, grupos y cupos libres |
+| GET | `/api/classes/:programId/groups/:groupId/dates` | Próximos días con clase y sus cupos |
+| POST | `/api/classes/enrollments` 🔒 | Inscripción mensual a un grupo (siempre 1 persona) |
+| POST | `/api/classes/bookings` 🔒 | Clase suelta o de cortesía (1, 2 o 4 personas) |
+| GET | `/api/classes/enrollments/me` · `/bookings/me` 🔒 | Mis clases |
+| PATCH | `/api/classes/enrollments/:id/cancel` · `/bookings/:id/cancel` 🔒 | Cancelar |
+| GET | `/api/tournaments` | Torneos con cupos libres |
+| POST | `/api/tournaments/:id/register` 🔒 | Inscribirse en un torneo |
+| GET | `/api/tournaments/registrations/me` 🔒 | Mis inscripciones a torneos |
+| PATCH | `/api/tournaments/registrations/:id/cancel` 🔒 | Cancelar inscripción |
+| GET | `/api/products` · `/api/products/:id` | Productos de la tienda con su stock |
+| POST | `/api/orders` 🔒 | Comprar: descuenta el stock y calcula subtotal, envío y total en el servidor |
+| GET | `/api/orders/me` 🔒 | Mis pedidos |
+
+🔒 = requiere iniciar sesión · 🛡️ = solo administrador
 
 ### Formato de las respuestas
 
