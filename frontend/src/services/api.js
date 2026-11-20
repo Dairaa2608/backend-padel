@@ -143,6 +143,11 @@ class Api {
     return request('/admin/stats')
   }
 
+  /** GET /api/admin/revenue — ingresos mensuales y transacciones recientes */
+  getAdminRevenue() {
+    return request('/admin/revenue')
+  }
+
   /**
    * Lista, crea, edita y borra en el panel: resource es
    * 'courts' | 'products' | 'tournaments' | 'classes' | 'users' | 'users/details'
