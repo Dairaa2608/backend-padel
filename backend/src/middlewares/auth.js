@@ -1,3 +1,4 @@
+import { isAccountVerified } from '../models/User.js'
 import { User } from '../models/index.js'
 import { AppError } from '../utils/AppError.js'
 import { COOKIE_NAME, verifyToken } from '../utils/token.js'
@@ -31,4 +32,13 @@ export const requireRole = (...roles) => (req, res, next) => {
     throw new AppError(403, 'FORBIDDEN', 'No tienes permiso para hacer esto')
     }
     next()
+}
+
+
+// Para reservar, inscribirse o comprar hay que haber verificado la cuenta (por correo o por SMS)
+export function requireVerifiedEmail(req, res, next) {
+  if (!isAccountVerified(req.user)) {
+    return next(new AppError(403, 'ACCOUNT_NOT_VERIFIED', 'Primero verifica tu cuenta con un código por correo o por SMS'))
+  }
+  next()
 }

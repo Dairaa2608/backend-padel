@@ -1,9 +1,9 @@
 import { Router } from 'express'
 import { rateLimit } from 'express-rate-limit'
-import { register, login, logout, me } from '../controllers/auth.controller.js'
+import { register, login, logout, me, verify, resendCode } from '../controllers/auth.controller.js'
 import { requireAuth } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
-import { registerSchema, loginSchema } from '../schemas/auth.schemas.js'
+import { registerSchema, loginSchema, verifySchema, resendSchema } from '../schemas/auth.schemas.js'
 import { AppError } from '../utils/AppError.js'
 
 const router = Router()
@@ -21,5 +21,10 @@ router.post('/register', authLimiter, validate(registerSchema), register)
 router.post('/login', authLimiter, validate(loginSchema), login)
 router.post('/logout', logout)
 router.get('/me', requireAuth, me)
+
+// Verificación de la cuenta con código (correo o teléfono)
+router.post('/verify', requireAuth, authLimiter, validate(verifySchema), verify)
+router.post('/verify/send', requireAuth, validate(resendSchema), resendCode)
+router.post('/verify/resend', requireAuth, validate(resendSchema), resendCode) // mismo que /send
 
 export default router

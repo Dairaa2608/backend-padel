@@ -5,6 +5,10 @@ const tournamentRegistrationSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     tournament: { type: mongoose.Schema.Types.ObjectId, ref: 'Tournament', required: true },
     level: { type: String, required: true },
+    amount: { type: Number, min: 0 },
+    paymentMethod: { type: String, enum: ['CARD', 'PSE', 'CASH'] },
+    paymentStatus: { type: String, enum: ['PAID', 'PENDING'] },
+    paymentDate: Date,
     partnerName: String, // pendiente: ¿inscripción por parejas?
     status: { type: String, enum: ['ACTIVE', 'CANCELLED'], default: 'ACTIVE' },
   },

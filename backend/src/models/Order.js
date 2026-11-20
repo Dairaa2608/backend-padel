@@ -24,6 +24,7 @@ const orderSchema = new mongoose.Schema(
     total: { type: Number, required: true, min: 0 },
     address: { type: String, required: true },
     phone: { type: String, required: true },
+    paymentMethod: { type: String, enum: ['CARD', 'PSE', 'CASH'], required: true }, // pago simulado
     status: { type: String, enum: ['PENDING', 'PAID', 'CANCELLED'], default: 'PENDING' },
   },
   { timestamps: true },

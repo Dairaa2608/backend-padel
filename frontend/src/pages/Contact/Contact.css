@@ -1,0 +1,154 @@
+.contact-page {
+  background-color: #f5f6fa;
+  min-height: 100vh;
+}
+
+/* Header */
+.contact-header {
+  background: linear-gradient(135deg, #010231 0%, #0a7c5c 100%);
+  padding: 52px 0;
+  color: #ffffff;
+}
+
+.contact-header h1 {
+  font-size: 2.4rem;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+}
+
+.contact-header p {
+  font-size: 1rem;
+  opacity: 0.85;
+  margin: 0;
+}
+
+/* Body */
+.contact-body {
+  padding: 48px 0 64px 0;
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Info */
+.contact-info-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 4px 16px rgba(1, 2, 49, 0.08);
+  margin-bottom: 20px;
+}
+
+.contact-info-card h5 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #010231;
+  margin: 0 0 24px 0;
+}
+
+.contact-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.contact-info-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #010231;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.contact-info-icon i {
+  color: #ffffff;
+  font-size: 1.2rem;
+}
+
+.contact-info-label {
+  font-size: 0.78rem;
+  color: #999;
+  margin: 0 0 2px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.contact-info-value {
+  font-size: 0.92rem;
+  color: #333;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Mapa */
+.contact-map-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(1, 2, 49, 0.08);
+}
+
+
+/* Responsive */
+@media (max-width: 900px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Columna derecha: mapa + tarjeta del asistente */
+.contact-side {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.contact-assistant-card {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(1, 2, 49, 0.08);
+}
+
+.contact-assistant-card h5 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #010231;
+}
+
+.contact-assistant-card p {
+  margin: 0 0 14px;
+  color: #555;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.contact-assistant-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 18px;
+  background: #0a7c5c;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.contact-assistant-btn:hover { background: #086b4f; }
+.contact-assistant-btn i { font-size: 18px; }
+
+[data-theme="dark"] .contact-assistant-card { background: var(--dm-bg-card); border: 1px solid var(--dm-border-subtle); box-shadow: none; }
+[data-theme="dark"] .contact-assistant-card p { color: var(--dm-text-body); }

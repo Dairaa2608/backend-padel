@@ -20,3 +20,12 @@ export const updateProfileSchema = z
   .object({ name, email, phone })
   .partial()
   .refine((data) => Object.keys(data).length > 0, 'Envía al menos un campo para actualizar')
+
+export const verifySchema = z.object({
+  channel: z.enum(['email', 'phone'], 'Canal no válido'),
+  code: z.string().trim().regex(/^\d{6}$/, 'El código tiene 6 dígitos'),
+})
+
+export const resendSchema = z.object({
+  channel: z.enum(['email', 'phone'], 'Canal no válido'),
+})

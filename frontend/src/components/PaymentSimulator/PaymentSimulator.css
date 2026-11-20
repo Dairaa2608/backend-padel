@@ -1,0 +1,140 @@
+.payment-simulator {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.payment-simulator-methods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.payment-simulator-method {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 46px;
+  padding: 8px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  color: #555;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-align: center;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.payment-simulator-method.active {
+  border-color: #00897b;
+  background: #e8f5f2;
+  color: #00695c;
+}
+
+.payment-simulator-method input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.payment-simulator-method i {
+  font-size: 1.05rem;
+}
+
+.payment-simulator-method:focus-within {
+  outline: 2px solid #00897b;
+  outline-offset: 2px;
+}
+
+.payment-simulator-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e4e8ec;
+  border-radius: 12px;
+  background: #f8fafb;
+}
+
+.payment-simulator-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #010231;
+}
+
+.payment-simulator-heading > i {
+  color: #00897b;
+}
+
+.payment-simulator-heading strong {
+  display: block;
+  font-size: 0.92rem;
+}
+
+.payment-simulator-heading p,
+.payment-simulator-cash p {
+  margin: 3px 0 0;
+  color: #68717b;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.payment-simulator-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: #424a52;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.payment-simulator-field select {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #d5dce2;
+  border-radius: 8px;
+  background: #fff;
+  color: #303840;
+  font: inherit;
+}
+
+.payment-simulator-cash {
+  flex-direction: row;
+  align-items: flex-start;
+  color: #795548;
+}
+
+.payment-simulator-cash > i {
+  flex: 0 0 auto;
+  font-size: 1.1rem;
+}
+
+.payment-simulator-disclaimer {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: #68717b;
+  font-size: 0.77rem;
+  line-height: 1.4;
+}
+
+.payment-simulator-disclaimer i {
+  flex: 0 0 auto;
+  color: #00897b;
+  font-size: 0.95rem;
+}
+
+@media (max-width: 440px) {
+  .payment-simulator-methods {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-simulator-method {
+    justify-content: flex-start;
+  }
+}

@@ -76,6 +76,48 @@ Debe aparecer `🚀 API escuchando en http://localhost:3000/api`. Abre en el nav
 
 Para apagarla: **Ctrl + C**.
 
+## Verificación de la cuenta con código
+
+Al registrarse, la cuenta queda **sin verificar** y la página lleva a **/verificar**. Como en Gmail, primero la persona **elige cómo recibir el código**: por **correo** o por **SMS** (si dio su teléfono). Solo entonces se envía un **código de 6 dígitos**, y lo escribe en la página.
+
+- Basta con verificar **uno** de los dos (correo o teléfono). Hasta entonces **no se puede reservar, inscribirse en clases o torneos ni comprar** (la API responde `403 ACCOUNT_NOT_VERIFIED`).
+- Los códigos se guardan **cifrados**, vencen a los **15 minutos**, permiten **5 intentos** y para pedir otro hay que esperar **60 segundos**.
+- Si se cambia el correo o el teléfono en el perfil, ese dato vuelve a quedar sin verificar.
+- Las cuentas creadas antes (las de prueba y el administrador) cuentan como verificadas.
+- En modo prueba (sin Gmail ni Twilio en el `.env`) el código aparece en la terminal de la API.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| POST | `/api/auth/verify` 🔒 | `{ "channel": "email" \| "phone", "code": "123456" }` |
+| POST | `/api/auth/verify/send` 🔒 | `{ "channel": "email" \| "phone" }` → envía el código por el canal elegido |
+
+## Correo de bienvenida (opcional)
+
+Cuando alguien se registra, la API le envía un correo de bienvenida desde una cuenta de Gmail:
+
+1. En la cuenta de Gmail del club, activa la **verificación en 2 pasos**.
+2. Entra a <https://myaccount.google.com/apppasswords>, crea una contraseña de aplicación llamada "PadelZone" y copia las 16 letras.
+3. En `backend/.env` añade `MAIL_USER="correo@gmail.com"` y `MAIL_PASS="las 16 letras"`, y reinicia la API.
+
+Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no llega a ninguna bandeja, pero en la consola de la API aparece `✉️ Correo de prueba para ... → ábrelo aquí: https://ethereal.email/message/...`. Abre ese enlace para ver el correo. El registro nunca falla por culpa del correo.
+
+## Chatbot gratuito con OpenRouter
+
+El chatbot usa OpenRouter desde el backend y el enrutador `openrouter/free`, que selecciona un modelo gratuito disponible y no hace fallback a modelos de pago. Crea una cuenta y una clave en <https://openrouter.ai/settings/keys>, y configúrala como `OPENROUTER_API_KEY` en `backend/.env`. No pongas la clave en el frontend ni la subas a Git. El nivel gratuito tiene límites de uso (actualmente 50 solicitudes diarias sin comprar créditos); los modelos gratuitos disponibles pueden cambiar. Después de editar `.env`, reinicia `npm run dev`. Sin la clave, el resto de la API funciona normalmente y el chatbot informa que no está configurado.
+
+El endpoint público `POST /api/chatbot` limita los mensajes por IP y no guarda el historial en la base de datos. En cada solicitud incluye en el contexto del modelo el inventario público activo, los precios de canchas y clases, los cupos de grupos y torneos, y la disponibilidad de canchas/clases cuando la conversación especifica una fecha. El contenido de la conversación se envía a OpenRouter y al proveedor del modelo gratuito seleccionado; no incluyas datos personales. Envía hasta 12 mensajes alternados con `role` (`user` o `assistant`) y `content`.
+
+## Mensaje de bienvenida al celular (opcional)
+
+Si la persona escribe su teléfono al registrarse, también recibe la bienvenida por **SMS o WhatsApp** con [Twilio](https://www.twilio.com):
+
+1. Crea una cuenta gratis en Twilio. La cuenta de prueba trae saldo, pero **solo envía a números verificados**: en la consola de Twilio ve a *Phone Numbers → Verified Caller IDs* y verifica tu celular.
+2. En *Account Info* copia el **Account SID** y el **Auth Token**, y consigue un número de Twilio (*Get a phone number*).
+3. En `backend/.env` añade `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM` (el número de Twilio, con `+`), y reinicia la API.
+4. Para WhatsApp en lugar de SMS: activa el *Sandbox de WhatsApp* de Twilio, únete desde tu celular con el código que te muestra y pon `SMS_CHANNEL="whatsapp"` y `TWILIO_FROM` = el número del sandbox.
+
+Los números colombianos se aceptan con o sin `+57` (`300 123 4567` → `+573001234567`). Si Twilio no está configurado, el mensaje se muestra en la consola de la API. Igual que con el correo, si el envío falla el registro no se ve afectado.
+
 ## Scripts
 
 | Comando | Qué hace |
@@ -83,14 +125,51 @@ Para apagarla: **Ctrl + C**.
 | `npm run dev` | Arranca la API en modo desarrollo: se reinicia sola al guardar un archivo |
 | `npm start` | Arranca la API (modo producción, sin reinicio automático) |
 | `npm run seed` | Crea los índices y carga los datos iniciales (se puede ejecutar varias veces sin duplicar) |
+| `npm run seed:demo` | Datos para la presentación: vacía las clases, crea 10 alumnos de prueba (`demo1@padelzone.com` … `demo10@padelzone.com`, contraseña `Demo12345`) y deja lleno el grupo de 15 - 21 años de Clases Regulares |
 
 ## Endpoints
 
 | Método | Ruta | Qué devuelve |
 |---|---|---|
 | GET | `/api/health` | Estado de la API y de la conexión a MongoDB |
+| POST | `/api/chatbot` | Respuesta conversacional del asistente con IA (si está configurado) |
 | GET | `/api/courts` | Canchas activas |
 | GET | `/api/courts/:id` | Una cancha |
+| GET | `/api/courts/:id/availability?date=` | Horas libres y ocupadas de una cancha ese día |
+| POST | `/api/auth/register` · `/login` · `/logout` | Cuenta y sesión (cookie `token`) |
+| GET | `/api/auth/me` 🔒 | Usuario de la sesión |
+| PATCH | `/api/users/me` 🔒 | Editar mi perfil |
+| GET | `/api/users` 🛡️ | Lista de usuarios |
+| POST | `/api/reservations` 🔒 | Reservar una cancha (precio calculado por la API) |
+| GET | `/api/reservations/me` 🔒 · `/api/reservations` 🛡️ | Mis reservas · todas |
+| PATCH | `/api/reservations/:id/cancel` 🔒 | Cancelar una reserva |
+| GET | `/api/classes` | Programas de clases, grupos y cupos libres |
+| GET | `/api/classes/:programId/groups/:groupId/dates` | Próximos días con clase y sus cupos |
+| POST | `/api/classes/enrollments` 🔒 | Inscripción mensual a un grupo (siempre 1 persona) |
+| POST | `/api/classes/bookings` 🔒 | Clase suelta o de cortesía (1, 2 o 4 personas) |
+| GET | `/api/classes/enrollments/me` · `/bookings/me` 🔒 | Mis clases |
+| PATCH | `/api/classes/enrollments/:id/cancel` · `/bookings/:id/cancel` 🔒 | Cancelar |
+| GET | `/api/tournaments` | Torneos con cupos libres |
+| POST | `/api/tournaments/:id/register` 🔒 | Inscribirse en un torneo |
+| GET | `/api/tournaments/registrations/me` 🔒 | Mis inscripciones a torneos |
+| PATCH | `/api/tournaments/registrations/:id/cancel` 🔒 | Cancelar inscripción |
+| GET | `/api/products` · `/api/products/:id` | Productos de la tienda con su stock |
+| POST | `/api/orders` 🔒 | Comprar: descuenta el stock y calcula subtotal, envío y total en el servidor |
+| GET | `/api/orders/me` 🔒 | Mis pedidos |
+
+| GET | `/api/admin/stats` 🛡️ | Números del panel: ingresos, reservas, usuarios, poco stock… |
+| GET | `/api/admin/revenue` 🛡️ | Ingresos por mes y categoría, pagos pendientes y movimientos de reservas, tienda, clases y torneos |
+| GET · POST · PATCH · DELETE | `/api/admin/courts`, `/products`, `/tournaments`, `/classes`, `/users` 🛡️ | Panel de administrador: listar, crear, editar y borrar |
+| GET | `/api/admin/reservations` · `/api/admin/orders` 🛡️ | Todas las reservas · todos los pedidos |
+| PATCH | `/api/admin/orders/:id/status` 🛡️ | Cambiar el estado de un pedido (si se cancela, el stock vuelve) |
+
+🔒 = requiere iniciar sesión · 🛡️ = solo administrador
+
+Lo que tiene historial (una cancha con reservas, un producto en pedidos, un usuario con compras…) no se borra: se desactiva, para no perder datos.
+
+### Pagos de clases y torneos
+
+Los pagos de inscripciones mensuales, clases sueltas y torneos son simulados: `CARD` y `PSE` quedan como `PAID`, y `CASH` como `PENDING`. El backend calcula y guarda el importe al inscribirse; las clases de cortesía son gratuitas y no requieren método. No se piden ni almacenan números de tarjeta, vencimientos o CVV. El panel de ingresos incluye estos movimientos pagados y pendientes.
 
 ### Formato de las respuestas
 
@@ -172,3 +251,5 @@ erDiagram
 | `EADDRINUSE: address already in use :::3000` | Ya hay otra API encendida en el puerto 3000: ciérrala (Ctrl + C en su terminal) o cambia `PORT` en `.env` |
 | `Invalid scheme, expected connection string to start with "mongodb://"` | La línea `MONGODB_URI` de `.env` está mal escrita: espacios, comillas curvas o falta `mongodb://` |
 | `querySrv ENOTFOUND` | La dirección del clúster está mal copiada, o tu red bloquea MongoDB (prueba con otra red) |
+| `ERR_MODULE_NOT_FOUND: Cannot find package 'cors'` | Instala las dependencias desde la carpeta `backend/` con `npm install` y vuelve a iniciar la API |
+| `401` o `403` al usar OpenRouter | Revisa que `OPENROUTER_API_KEY` sea una clave activa de <https://openrouter.ai/settings/keys>. No compartas la clave; el motivo del proveedor aparece en la consola del backend. |

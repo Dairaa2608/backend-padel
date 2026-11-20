@@ -11,6 +11,9 @@ const classBookingSchema = new mongoose.Schema(
     schedule: { type: String, required: true }, // uno de program.scheduleSlots
     partySize: { type: Number, enum: [1, 2, 4], required: true },
     price: { type: Number, required: true, min: 0 }, // 0 en las de cortesía
+    paymentMethod: { type: String, enum: ['CARD', 'PSE', 'CASH', null], default: null },
+    paymentStatus: { type: String, enum: ['PAID', 'PENDING', 'NOT_REQUIRED'] },
+    paymentDate: Date,
     // Cédula cifrada (solo en las de cortesía): permite comprobar si ya se usó sin poder leerla
     cedulaHash: { type: String, select: false },
     status: { type: String, enum: ['ACTIVE', 'CANCELLED'], default: 'ACTIVE' },

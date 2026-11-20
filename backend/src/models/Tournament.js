@@ -12,6 +12,8 @@ const tournamentSchema = new mongoose.Schema(
     fee: { type: Number, required: true, min: 0 },
     prize: { type: Number, required: true, min: 0 },
     capacity: { type: Number, required: true, min: 1 },
+    // Inscripciones activas. Se suma y resta de forma atómica (ver tournaments.controller.js)
+    registeredCount: { type: Number, default: 0, min: 0 },
     imageUrl: String,
   },
   { timestamps: true },
