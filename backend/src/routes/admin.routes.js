@@ -13,6 +13,7 @@ const router = Router()
 router.use(requireAuth, requireRole('ADMIN'))
 
 router.get('/stats', admin.getStats)
+router.get('/revenue', admin.getRevenueReport)
 
 router.get('/courts', admin.courts.list)
 router.post('/courts', validate(courtSchema), admin.courts.create)

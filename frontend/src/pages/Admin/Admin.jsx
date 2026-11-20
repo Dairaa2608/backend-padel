@@ -16,6 +16,7 @@ import './Admin.css'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', title: 'Panel General', icon: 'dashboard', section: 'Principal' },
+  { id: 'revenue', label: 'Ingresos', title: 'Panel de Ingresos', icon: 'account_balance_wallet', section: 'Principal' },
   { id: 'courts', label: 'Canchas', title: 'Canchas', icon: 'sports_tennis', section: 'Instalaciones y Juego' },
   { id: 'reservations', label: 'Reservas', title: 'Control de Reservas', icon: 'event', section: 'Instalaciones y Juego' },
   { id: 'classes', label: 'Clases', title: 'Programas de Clases', icon: 'school', section: 'Instalaciones y Juego' },
@@ -25,6 +26,15 @@ const TABS = [
   { id: 'users', label: 'Usuarios', title: 'Usuarios y Roles', icon: 'people_alt', section: 'Comercio y Usuarios' },
 ]
 const SECTIONS = [...new Set(TABS.map((t) => t.section))]
+const REVENUE_CATEGORIES = [
+  { id: 'courts', label: 'Canchas', color: '#10b981' },
+  { id: 'store', label: 'Tienda', color: '#60a5fa' },
+  { id: 'classes', label: 'Clases sueltas', color: '#a78bfa' },
+]
+const REVENUE_STATUS = {
+  ...ORDER_STATUS,
+  ...RESERVATION_STATUS,
+}
 
 export default function Admin() {
   const { user, logout } = useAuth()
@@ -40,6 +50,7 @@ export default function Admin() {
   const [modal, setModal] = useState(null) // { resource, item }
 
   const [stats, setStats] = useState(null)
+  const [revenue, setRevenue] = useState(null)
   const [data, setData] = useState({ courts: [], reservations: [], classes: [], tournaments: [], products: [], orders: [], users: [] })
 
   const showToast = (message, type = 'success') => {
@@ -51,6 +62,7 @@ export default function Admin() {
   const loadAll = useCallback(() => {
     return Promise.all([
       api.getAdminStats(),
+      api.getAdminRevenue(),
       api.adminList('courts'),
       api.getAllReservations(),
       api.adminList('classes'),
@@ -59,8 +71,9 @@ export default function Admin() {
       api.getAllOrders(),
       api.adminList('users/details'),
     ])
-      .then(([s, courts, reservations, classes, tournaments, products, orders, users]) => {
+      .then(([s, revenueData, courts, reservations, classes, tournaments, products, orders, users]) => {
         setStats(s)
+        setRevenue(revenueData)
         setData({ courts, reservations, classes, tournaments, products, orders, users })
       })
       .catch((err) => {
@@ -200,6 +213,7 @@ export default function Admin() {
           ) : (
             <>
               {tab === 'dashboard' && <Dashboard stats={stats} reservations={data.reservations} onRefresh={refresh} loading={loading} goTo={changeTab} />}
+              {tab === 'revenue' && <RevenueDashboard report={revenue} onRefresh={refresh} loading={loading} />}
 
               {tab === 'courts' && (
                 <Section title="Canchas" subtitle="Precio por hora, tipo y si están disponibles para reservar" onNew={() => setModal({ resource: 'courts' })} newLabel="Nueva cancha">
@@ -377,7 +391,7 @@ export default function Admin() {
 
 function Dashboard({ stats, reservations, onRefresh, loading, goTo }) {
   const metrics = [
-    ['Ingresos', formatMoney(stats.revenue.total), 'payments', 'Reservas + tienda pagada + clases sueltas'],
+    ['Ingresos registrados', formatMoney(stats.revenue.total), 'payments', 'Reservas + tienda pagada + clases sueltas'],
     ['Reservas activas', stats.activeReservations, 'event', plural(stats.reservations, 'reserva', 'reservas') + ' en total'],
     ['Canchas activas', `${stats.activeCourts} / ${stats.courts}`, 'sports_tennis', 'Disponibles para reservar'],
     ['Usuarios', stats.users, 'group', 'Cuentas registradas'],
@@ -394,10 +408,13 @@ function Dashboard({ stats, reservations, onRefresh, loading, goTo }) {
           <h1>Resumen general</h1>
           <p>Actividad del club calculada en el servidor con los datos de MongoDB</p>
         </div>
-        <button className="btn-admin-action-primary" onClick={onRefresh}>
-          <i className="material-icons">sync</i>
-          <span>{loading ? 'Actualizando…' : 'Actualizar'}</span>
-        </button>
+        <div className="admin-dashboard-actions">
+          <button className="btn-secondary-pro" onClick={() => goTo('revenue')}>Ver ingresos</button>
+          <button className="btn-admin-action-primary" onClick={onRefresh}>
+            <i className="material-icons">sync</i>
+            <span>{loading ? 'Actualizando…' : 'Actualizar'}</span>
+          </button>
+        </div>
       </div>
 
       <div className="admin-metrics-row">
@@ -431,6 +448,132 @@ function Dashboard({ stats, reservations, onRefresh, loading, goTo }) {
             </tr>
           )} />
       </div>
+    </div>
+  )
+}
+
+function RevenueDashboard({ report, onRefresh, loading }) {
+  if (!report) {
+    return (
+      <div className="admin-empty-state" role="status">
+        <i className="material-icons">payments</i>
+        <p>{loading ? 'Cargando ingresos…' : 'No se pudo cargar el panel de ingresos.'}</p>
+        {!loading && <button className="btn-admin-action-primary" onClick={onRefresh}>Reintentar</button>}
+      </div>
+    )
+  }
+
+  const { summary, months, transactions } = report
+  const maxMonthTotal = Math.max(1, ...months.map((month) => month.total))
+
+  return (
+    <div>
+      <div className="admin-view-header">
+        <div className="admin-view-title">
+          <h1>Ingresos del club</h1>
+          <p>Resumen mensual de los últimos seis meses y pagos únicos registrados</p>
+        </div>
+        <button className="btn-admin-action-primary" onClick={onRefresh}>
+          <i className="material-icons">sync</i>
+          <span>{loading ? 'Actualizando…' : 'Actualizar'}</span>
+        </button>
+      </div>
+
+      <div className="admin-metrics-row">
+        <div className="metric-box">
+          <div className="metric-box-top"><span className="metric-box-label">Ingresos registrados</span><div className="metric-box-icon"><i className="material-icons">payments</i></div></div>
+          <div className="metric-box-value">{formatMoney(summary.confirmed)}</div>
+          <div className="metric-box-sub">Reservas confirmadas, tienda pagada y clases sueltas</div>
+        </div>
+        <div className="metric-box">
+          <div className="metric-box-top"><span className="metric-box-label">Pendiente de pago</span><div className="metric-box-icon"><i className="material-icons">schedule</i></div></div>
+          <div className="metric-box-value">{formatMoney(summary.pending)}</div>
+          <div className="metric-box-sub">{plural(summary.pendingTransactions, 'pedido pendiente', 'pedidos pendientes')}</div>
+        </div>
+        <div className="metric-box">
+          <div className="metric-box-top"><span className="metric-box-label">Movimientos</span><div className="metric-box-icon"><i className="material-icons">receipt_long</i></div></div>
+          <div className="metric-box-value">{summary.confirmedTransactions + summary.pendingTransactions}</div>
+          <div className="metric-box-sub">Últimos seis meses</div>
+        </div>
+        <div className="metric-box">
+          <div className="metric-box-top"><span className="metric-box-label">Método registrado</span><div className="metric-box-icon"><i className="material-icons">credit_card</i></div></div>
+          <div className="metric-box-value">{summary.paymentMethodsRecorded}</div>
+          <div className="metric-box-sub">Pedidos de tienda con método de pago guardado</div>
+        </div>
+      </div>
+
+      <div className="admin-revenue-grid">
+        <section className="admin-card-pro">
+          <div className="admin-toolbar">
+            <span className="admin-toolbar-title">Ingresos por mes y categoría</span>
+            <span className="admin-small">Los pendientes no se suman al ingreso registrado</span>
+          </div>
+          <div className="admin-revenue-chart">
+            {months.map((month) => (
+              <div className="admin-revenue-month" key={month.key}>
+                <span className="admin-revenue-month-label">{month.label}</span>
+                <div className="admin-revenue-track" aria-label={`${month.label}: ${formatMoney(month.total)} registrados`}>
+                  <div className="admin-revenue-bar" style={{ width: `${(month.total / maxMonthTotal) * 100}%` }}>
+                    {REVENUE_CATEGORIES.map((category) => {
+                      const amount = month.categories[category.id]
+                      return amount > 0 && (
+                        <span
+                          key={category.id}
+                          className="admin-revenue-segment"
+                          style={{ width: `${(amount / month.total) * 100}%`, backgroundColor: category.color }}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+                <strong className="admin-revenue-month-total">{formatMoney(month.total)}</strong>
+                <span className="admin-revenue-month-pending">
+                  {month.pending > 0 ? `${formatMoney(month.pending)} pendiente` : '—'}
+                </span>
+              </div>
+            ))}
+            <div className="admin-revenue-legend">
+              {REVENUE_CATEGORIES.map((category) => (
+                <span key={category.id}><i style={{ backgroundColor: category.color }} />{category.label}</span>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="admin-card-pro">
+          <div className="admin-toolbar"><span className="admin-toolbar-title">Ingresos por categoría</span></div>
+          <div className="admin-revenue-category-list">
+            {REVENUE_CATEGORIES.map((category) => (
+              <div className="admin-revenue-category" key={category.id}>
+                <span><i style={{ backgroundColor: category.color }} />{category.label}</span>
+                <strong>{formatMoney(summary.categories[category.id])}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <section className="admin-card-pro admin-revenue-transactions">
+        <div className="admin-toolbar">
+          <span className="admin-toolbar-title">Movimientos recientes</span>
+          <span className="admin-small">El método solo se guarda en pedidos. Reservas confirmadas y clases activas se muestran como ingreso registrado, no como pago verificado.</span>
+        </div>
+        <Table
+          head={['Fecha', 'Cliente', 'Origen', 'Detalle', 'Importe', 'Método de pago', 'Estado']}
+          rows={transactions}
+          render={(transaction) => (
+            <tr key={transaction.id}>
+              <td>{formatDate(transaction.date)}</td>
+              <td><strong>{transaction.customer}</strong><div className="admin-small">{transaction.email || '—'}</div></td>
+              <td>{REVENUE_CATEGORIES.find((category) => category.id === transaction.category)?.label ?? '—'}</td>
+              <td>{transaction.description}</td>
+              <td>{formatMoney(transaction.amount)}</td>
+              <td>{PAYMENT_METHODS[transaction.paymentMethod] ?? 'No registrado'}</td>
+              <td><Status map={REVENUE_STATUS} value={transaction.status} /></td>
+            </tr>
+          )}
+        />
+      </section>
     </div>
   )
 }

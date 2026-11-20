@@ -1068,3 +1068,182 @@
   padding: 2px !important;
   box-sizing: border-box;
 }
+
+.admin-dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-revenue-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.admin-revenue-chart {
+  padding: 20px;
+}
+
+.admin-revenue-month {
+  display: grid;
+  grid-template-columns: 90px minmax(100px, 1fr) 120px 130px;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+
+.admin-revenue-month-label,
+.admin-revenue-month-total {
+  color: #e4e4e7;
+  font-size: 0.82rem;
+  text-transform: capitalize;
+}
+
+[data-theme="light"] .admin-revenue-month-label,
+[data-theme="light"] .admin-revenue-month-total {
+  color: #334155;
+}
+
+.admin-revenue-month-total {
+  text-align: right;
+  font-weight: 600;
+}
+
+.admin-revenue-month-pending {
+  color: #fbbf24;
+  font-size: 0.75rem;
+  text-align: right;
+}
+
+.admin-revenue-track {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="light"] .admin-revenue-track {
+  background: #e2e8f0;
+}
+
+.admin-revenue-bar {
+  display: flex;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.admin-revenue-segment {
+  height: 100%;
+}
+
+.admin-revenue-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="light"] .admin-revenue-legend {
+  border-top-color: #e2e8f0;
+}
+
+.admin-revenue-legend span,
+.admin-revenue-category span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #a1a1aa;
+  font-size: 0.8rem;
+}
+
+[data-theme="light"] .admin-revenue-legend span,
+[data-theme="light"] .admin-revenue-category span {
+  color: #475569;
+}
+
+.admin-revenue-legend i,
+.admin-revenue-category i {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+}
+
+.admin-revenue-category-list {
+  display: grid;
+  gap: 2px;
+  padding: 8px 20px;
+}
+
+.admin-revenue-category {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.admin-revenue-category:last-child {
+  border-bottom: 0;
+}
+
+[data-theme="light"] .admin-revenue-category {
+  border-bottom-color: #e2e8f0;
+}
+
+.admin-revenue-category strong {
+  color: #f4f4f5;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+[data-theme="light"] .admin-revenue-category strong {
+  color: #0f172a;
+}
+
+.admin-revenue-transactions {
+  margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+  .admin-revenue-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .admin-dashboard-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .admin-revenue-chart {
+    padding: 16px 12px;
+  }
+
+  .admin-revenue-month {
+    grid-template-columns: minmax(58px, 0.6fr) minmax(50px, 1fr) auto;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .admin-revenue-month-label {
+    font-size: 0.72rem;
+  }
+
+  .admin-revenue-month-total {
+    font-size: 0.75rem;
+  }
+
+  .admin-revenue-month-pending {
+    grid-column: 2 / -1;
+    font-size: 0.7rem;
+  }
+}

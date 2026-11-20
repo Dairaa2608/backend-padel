@@ -50,6 +50,108 @@ export async function getStats(req, res) {
   })
 }
 
+const revenueMonthKey = (date) => `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`
+
+export async function getRevenueReport(req, res) {
+  const now = new Date()
+  const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1))
+  const to = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+  const months = new Map(Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5 + index, 1))
+    const key = revenueMonthKey(date)
+    return [key, {
+      key,
+      label: new Intl.DateTimeFormat('es-CO', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date),
+      total: 0,
+      pending: 0,
+      categories: { courts: 0, store: 0, classes: 0 },
+    }]
+  }))
+
+  const createdAt = { $gte: from, $lt: to }
+  const [reservations, orders, classBookings] = await Promise.all([
+    Reservation.find({ status: 'CONFIRMED', createdAt })
+      .populate('user', 'name email')
+      .populate('court', 'name'),
+    Order.find({ status: { $in: ['PAID', 'PENDING'] }, createdAt })
+      .populate('user', 'name email'),
+    ClassBooking.find({ type: 'SINGLE', status: 'ACTIVE', price: { $gt: 0 }, createdAt })
+      .populate('user', 'name email')
+      .populate('program', 'name'),
+  ])
+
+  const transactions = [
+    ...reservations.map((reservation) => ({
+      id: `reservation-${reservation._id}`,
+      date: reservation.createdAt,
+      customer: reservation.user?.name ?? 'Usuario eliminado',
+      email: reservation.user?.email ?? '',
+      category: 'courts',
+      description: `${reservation.court?.name ?? 'Reserva'} · ${reservation.date}`,
+      amount: reservation.totalPrice,
+      paymentMethod: null,
+      status: 'CONFIRMED',
+    })),
+    ...orders.map((order) => ({
+      id: `order-${order._id}`,
+      date: order.createdAt,
+      customer: order.user?.name ?? 'Usuario eliminado',
+      email: order.user?.email ?? '',
+      category: 'store',
+      description: `Pedido #${String(order._id).slice(-6).toUpperCase()}`,
+      amount: order.total,
+      paymentMethod: order.paymentMethod,
+      status: order.status,
+    })),
+    ...classBookings.map((booking) => ({
+      id: `class-${booking._id}`,
+      date: booking.createdAt,
+      customer: booking.user?.name ?? 'Usuario eliminado',
+      email: booking.user?.email ?? '',
+      category: 'classes',
+      description: booking.program?.name ?? 'Clase suelta',
+      amount: booking.price,
+      paymentMethod: null,
+      status: 'CONFIRMED',
+    })),
+  ].sort((a, b) => new Date(b.date) - new Date(a.date))
+
+  const summary = {
+    confirmed: 0,
+    pending: 0,
+    confirmedTransactions: 0,
+    pendingTransactions: 0,
+    paymentMethodsRecorded: 0,
+    categories: { courts: 0, store: 0, classes: 0 },
+  }
+
+  for (const transaction of transactions) {
+    const month = months.get(revenueMonthKey(new Date(transaction.date)))
+    if (transaction.paymentMethod) summary.paymentMethodsRecorded += 1
+    if (transaction.status === 'PENDING') {
+      summary.pending += transaction.amount
+      summary.pendingTransactions += 1
+      month.pending += transaction.amount
+      continue
+    }
+
+    summary.confirmed += transaction.amount
+    summary.confirmedTransactions += 1
+    summary.categories[transaction.category] += transaction.amount
+    month.total += transaction.amount
+    month.categories[transaction.category] += transaction.amount
+  }
+
+  res.json({
+    data: {
+      from,
+      summary,
+      months: [...months.values()],
+      transactions: transactions.slice(0, 100),
+    },
+  })
+}
+
 /* ── CRUD genérico: canchas, productos y torneos ─── */
 // Para borrar se comprueba antes si tiene historial (reservas, pedidos, inscripciones).
 // Si lo tiene, no se borra: se pide desactivarlo, así no se pierden datos de otras personas.

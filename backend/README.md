@@ -158,6 +158,7 @@ Los números colombianos se aceptan con o sin `+57` (`300 123 4567` → `+573001
 | GET | `/api/orders/me` 🔒 | Mis pedidos |
 
 | GET | `/api/admin/stats` 🛡️ | Números del panel: ingresos, reservas, usuarios, poco stock… |
+| GET | `/api/admin/revenue` 🛡️ | Ingresos por mes y categoría, pedidos pendientes y movimientos con cliente y método de pago registrado |
 | GET · POST · PATCH · DELETE | `/api/admin/courts`, `/products`, `/tournaments`, `/classes`, `/users` 🛡️ | Panel de administrador: listar, crear, editar y borrar |
 | GET | `/api/admin/reservations` · `/api/admin/orders` 🛡️ | Todas las reservas · todos los pedidos |
 | PATCH | `/api/admin/orders/:id/status` 🛡️ | Cambiar el estado de un pedido (si se cancela, el stock vuelve) |
