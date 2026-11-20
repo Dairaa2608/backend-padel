@@ -76,6 +76,21 @@ Debe aparecer `🚀 API escuchando en http://localhost:3000/api`. Abre en el nav
 
 Para apagarla: **Ctrl + C**.
 
+## Verificación de la cuenta con código
+
+Al registrarse, la cuenta queda **sin verificar** y se envía un **código de 6 dígitos** al correo (y otro al celular si dio su teléfono). La página lleva a **/verificar** para escribirlo.
+
+- Hasta verificar el correo **no se puede reservar, inscribirse en clases o torneos ni comprar** (la API responde `403 EMAIL_NOT_VERIFIED`). Verificar el teléfono es opcional.
+- Los códigos se guardan **cifrados**, vencen a los **15 minutos**, permiten **5 intentos** y para pedir otro hay que esperar **60 segundos**.
+- Si se cambia el correo o el teléfono en el perfil, hay que verificarlo de nuevo.
+- Las cuentas creadas antes (las de prueba y el administrador) cuentan como verificadas.
+- En modo prueba (sin Gmail ni Twilio en el `.env`) el código aparece en la terminal de la API.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| POST | `/api/auth/verify` 🔒 | `{ "channel": "email" \| "phone", "code": "123456" }` |
+| POST | `/api/auth/verify/resend` 🔒 | `{ "channel": "email" \| "phone" }` → envía un código nuevo |
+
 ## Correo de bienvenida (opcional)
 
 Cuando alguien se registra, la API le envía un correo de bienvenida desde una cuenta de Gmail:

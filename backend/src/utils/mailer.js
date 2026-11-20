@@ -42,6 +42,10 @@ function getTransporter() {
 // Envía un correo. Nunca lanza error: si falla, solo lo anota en la consola,
 // para que un problema con el correo no impida registrarse.
 export async function sendMail({ to, subject, html, text }) {
+  // En modo prueba (sin Gmail) el texto también se muestra en la consola: así se ve el código aunque no haya internet
+  if (!process.env.MAIL_USER || !process.env.MAIL_PASS) {
+    console.log(`✉️  Correo de PRUEBA para ${to} · ${subject}\n${text.split('\n').map((l) => `   ${l}`).join('\n')}`)
+  }
   try {
     const mailer = await getTransporter()
     const from = `"PadelZone" <${process.env.MAIL_USER || 'no-reply@padelzone.com'}>`

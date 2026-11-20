@@ -15,6 +15,7 @@ import Tournaments from './pages/Tournaments/Tournaments'
 import Clases from './pages/clases/clases'
 import Tienda from './pages/Tienda/Tienda'
 import Admin from './pages/Admin/Admin'
+import Verify from './pages/Verify/Verify'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
@@ -140,6 +141,14 @@ function App() {
           <Route path="/torneos" element={<Tournaments />} />
            <Route path="/clases" element={<Clases />} /> 
           <Route path="/tiendas" element={<Tienda />} />
+          <Route
+            path="/verificar"
+            element={
+              <ProtectedRoute>
+                <Verify />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/admin"
             element={

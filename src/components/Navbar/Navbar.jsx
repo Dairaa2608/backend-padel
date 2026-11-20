@@ -5,7 +5,7 @@ import { useTheme } from '../../contexts/ThemeContext'
 import './Navbar.css'
 
 function Navbar() {
-  const { user, isAuthenticated, logout } = useAuth()
+  const { user, isAuthenticated, logout, needsVerification } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
   const [servicesOpen, setServicesOpen] = useState(false)
@@ -85,6 +85,14 @@ function Navbar() {
           </li>
 
           <li><Link to="/contacto">Contacto</Link></li>
+          {needsVerification && (
+            <li>
+              <Link to="/verificar" className="nav-verify-link" title="Escribe el código que te enviamos al correo">
+                <i className="material-icons left">mark_email_unread</i>
+                Verifica tu cuenta
+              </Link>
+            </li>
+          )}
           {user?.role === 'ADMIN' && (
             <li>
               <Link to="/admin" className="nav-admin-link">

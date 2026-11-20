@@ -299,6 +299,16 @@ class Api {
     return request('/auth/logout', { method: 'POST' })
   }
 
+  /** POST /api/auth/verify — confirma el correo o el teléfono con el código de 6 dígitos */
+  verifyCode(channel, code) {
+    return request('/auth/verify', { method: 'POST', body: JSON.stringify({ channel, code }) })
+  }
+
+  /** POST /api/auth/verify/resend — envía un código nuevo (hay que esperar 60 s entre envíos) */
+  resendVerificationCode(channel) {
+    return request('/auth/verify/resend', { method: 'POST', body: JSON.stringify({ channel }) })
+  }
+
   /** GET /api/auth/me — usuario de la sesión actual (error 401 si no hay sesión) */
   me() {
     return request('/auth/me')

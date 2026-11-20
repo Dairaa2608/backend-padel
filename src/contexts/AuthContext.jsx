@@ -41,6 +41,13 @@ export const AuthProvider = ({ children }) => {
     return updatedUser;
   };
 
+  // Confirma el correo o el teléfono con el código; la API devuelve el usuario actualizado
+  const verifyCode = async (channel, code) => {
+    const updatedUser = await api.verifyCode(channel, code);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -54,9 +61,11 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     updateProfile,
+    verifyCode,
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',
+    needsVerification: user?.emailVerified === false,
     loading
   };
 

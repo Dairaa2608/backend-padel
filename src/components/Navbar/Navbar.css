@@ -223,3 +223,12 @@ nav.navbar-main .nav-wrapper.container {
   font-weight: 600;
 }
 .nav-admin-link i { font-size: 1.1rem; margin-right: 4px !important; }
+
+/* Aviso para quien aún no verificó su correo */
+.nav-verify-link {
+  display: flex !important;
+  align-items: center;
+  color: #fcd34d !important;
+  font-weight: 600;
+}
+.nav-verify-link i { font-size: 1.1rem; margin-right: 4px !important; }
