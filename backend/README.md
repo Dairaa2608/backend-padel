@@ -158,7 +158,7 @@ Los números colombianos se aceptan con o sin `+57` (`300 123 4567` → `+573001
 | GET | `/api/orders/me` 🔒 | Mis pedidos |
 
 | GET | `/api/admin/stats` 🛡️ | Números del panel: ingresos, reservas, usuarios, poco stock… |
-| GET | `/api/admin/revenue` 🛡️ | Ingresos por mes y categoría, pedidos pendientes y movimientos con cliente y método de pago registrado |
+| GET | `/api/admin/revenue` 🛡️ | Ingresos por mes y categoría, pagos pendientes y movimientos de reservas, tienda, clases y torneos |
 | GET · POST · PATCH · DELETE | `/api/admin/courts`, `/products`, `/tournaments`, `/classes`, `/users` 🛡️ | Panel de administrador: listar, crear, editar y borrar |
 | GET | `/api/admin/reservations` · `/api/admin/orders` 🛡️ | Todas las reservas · todos los pedidos |
 | PATCH | `/api/admin/orders/:id/status` 🛡️ | Cambiar el estado de un pedido (si se cancela, el stock vuelve) |
@@ -166,6 +166,10 @@ Los números colombianos se aceptan con o sin `+57` (`300 123 4567` → `+573001
 🔒 = requiere iniciar sesión · 🛡️ = solo administrador
 
 Lo que tiene historial (una cancha con reservas, un producto en pedidos, un usuario con compras…) no se borra: se desactiva, para no perder datos.
+
+### Pagos de clases y torneos
+
+Los pagos de inscripciones mensuales, clases sueltas y torneos son simulados: `CARD` y `PSE` quedan como `PAID`, y `CASH` como `PENDING`. El backend calcula y guarda el importe al inscribirse; las clases de cortesía son gratuitas y no requieren método. No se piden ni almacenan números de tarjeta, vencimientos o CVV. El panel de ingresos incluye estos movimientos pagados y pendientes.
 
 ### Formato de las respuestas
 

@@ -1,6 +1,7 @@
 import { Tournament, TournamentRegistration } from '../models/index.js'
 import { AppError } from '../utils/AppError.js'
 import { todayInColombia } from '../utils/dates.js'
+import { simulatePayment } from '../utils/payment.js'
 
 // Añade los cupos libres a cada torneo antes de enviarlo
 const withSpots = (tournament) => {
@@ -29,6 +30,7 @@ export async function listMyRegistrations(req, res) {
 
 // POST /api/tournaments/:id/register
 export async function registerToTournament(req, res) {
+  const { level, paymentMethod } = req.body
   const tournament = await Tournament.findById(req.params.id)
   if (!tournament) {
     throw new AppError(404, 'TOURNAMENT_NOT_FOUND', 'Torneo no encontrado')
@@ -41,6 +43,7 @@ export async function registerToTournament(req, res) {
   if (existing?.status === 'ACTIVE') {
     throw new AppError(409, 'ALREADY_REGISTERED', 'Ya estás inscrito en este torneo')
   }
+  const payment = simulatePayment(paymentMethod)
 
   // Reserva un cupo en un solo paso: MongoDB solo suma 1 si todavía quedan cupos.
   // Así, aunque se inscriban varias personas a la vez, nunca se supera la capacidad.
@@ -57,13 +60,17 @@ export async function registerToTournament(req, res) {
     if (existing) {
       // Se había inscrito y canceló: se reactiva la misma inscripción
       existing.status = 'ACTIVE'
-      existing.level = req.body.level
+      existing.level = level
+      existing.amount = tournament.fee
+      Object.assign(existing, payment)
       registration = await existing.save()
     } else {
       registration = await TournamentRegistration.create({
         user: req.user._id,
         tournament: tournament._id,
-        level: req.body.level,
+        level,
+        amount: tournament.fee,
+        ...payment,
       })
     }
     await registration.populate('tournament')

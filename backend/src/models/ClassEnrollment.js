@@ -7,6 +7,10 @@ const classEnrollmentSchema = new mongoose.Schema(
     group: { type: mongoose.Schema.Types.ObjectId, required: true }, // _id del grupo dentro del programa
     schedule: { type: String, required: true }, // uno de program.scheduleSlots
     level: { type: String, required: true },
+    amount: { type: Number, min: 0 },
+    paymentMethod: { type: String, enum: ['CARD', 'PSE', 'CASH'] },
+    paymentStatus: { type: String, enum: ['PAID', 'PENDING'] },
+    paymentDate: Date,
     partySize: { type: Number, default: 1 }, // la inscripción mensual es individual
     birthDate: { type: Date, required: true },
     status: { type: String, enum: ['ACTIVE', 'CANCELLED'], default: 'ACTIVE' },

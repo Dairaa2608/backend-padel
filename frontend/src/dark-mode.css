@@ -436,6 +436,7 @@
   .payment-summary, .product-card, .product-image-wrapper, .cart-drawer, .cart-header,
   .cart-item-image, .cart-shipping-progress, .cart-footer, .checkout-modal, .checkout-items,
   .checkout-item, .success-box, .profile-stat-card, .profile-tabs, .profile-empty,
+  .payment-simulator-panel,
   .profile-data-card, .chatbox-card, .chatbox-messages, .chat-bubble.assistant,
   .forgot-modal, .whyus-front, .courtesy-banner-light
 ) {
@@ -446,11 +447,13 @@
 }
 
 [data-theme="dark"] .clase-grupo.sin-cupo { opacity: 0.6; }
+[data-theme="dark"] .payment-simulator-heading { color: var(--dm-text-heading) !important; }
 
 /* Botones y campos claros */
 [data-theme="dark"] :is(
   .btn-suelta, .chat-option-btn, .profile-edit-btn, .product-btn--disabled,
   .payment-method, .personas-btn, .modal-step.active, .tournament-fee, .my-reg-status,
+  .payment-simulator-method,
   .court-modal-price, .qty-btn, .btn-secondary, .tournaments-tab, .profile-tab
 ) {
   background: var(--dm-bg-input) !important;
@@ -462,6 +465,12 @@
 [data-theme="dark"] .profile-tab.active,
 [data-theme="dark"] .personas-btn.activo,
 [data-theme="dark"] .payment-method--active {
+  background: var(--dm-accent) !important;
+  border-color: var(--dm-accent) !important;
+  color: #04120c !important;
+}
+
+[data-theme="dark"] .payment-simulator-method.active {
   background: var(--dm-accent) !important;
   border-color: var(--dm-accent) !important;
   color: #04120c !important;
@@ -482,7 +491,8 @@
   color: var(--dm-text-heading);
 }
 [data-theme="dark"] :is(.product-description, .profesor-cargo, .checkout-item-meta,
-  .personas-ayuda, .court-capacity, .court-desc) {
+  .personas-ayuda, .court-capacity, .court-desc, .payment-simulator-heading p,
+  .payment-simulator-disclaimer, .payment-simulator-cash p) {
   color: var(--dm-text-body) !important;
 }
 [data-theme="dark"] .product-price,

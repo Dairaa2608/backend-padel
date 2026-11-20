@@ -29,7 +29,8 @@ const SECTIONS = [...new Set(TABS.map((t) => t.section))]
 const REVENUE_CATEGORIES = [
   { id: 'courts', label: 'Canchas', color: '#10b981' },
   { id: 'store', label: 'Tienda', color: '#60a5fa' },
-  { id: 'classes', label: 'Clases sueltas', color: '#a78bfa' },
+  { id: 'classes', label: 'Clases', color: '#a78bfa' },
+  { id: 'tournaments', label: 'Torneos', color: '#f59e0b' },
 ]
 const REVENUE_STATUS = {
   ...ORDER_STATUS,
@@ -391,7 +392,7 @@ export default function Admin() {
 
 function Dashboard({ stats, reservations, onRefresh, loading, goTo }) {
   const metrics = [
-    ['Ingresos registrados', formatMoney(stats.revenue.total), 'payments', 'Reservas + tienda pagada + clases sueltas'],
+    ['Ingresos registrados', formatMoney(stats.revenue.total), 'payments', 'Reservas, tienda, clases y torneos pagados'],
     ['Reservas activas', stats.activeReservations, 'event', plural(stats.reservations, 'reserva', 'reservas') + ' en total'],
     ['Canchas activas', `${stats.activeCourts} / ${stats.courts}`, 'sports_tennis', 'Disponibles para reservar'],
     ['Usuarios', stats.users, 'group', 'Cuentas registradas'],
@@ -483,12 +484,12 @@ function RevenueDashboard({ report, onRefresh, loading }) {
         <div className="metric-box">
           <div className="metric-box-top"><span className="metric-box-label">Ingresos registrados</span><div className="metric-box-icon"><i className="material-icons">payments</i></div></div>
           <div className="metric-box-value">{formatMoney(summary.confirmed)}</div>
-          <div className="metric-box-sub">Reservas confirmadas, tienda pagada y clases sueltas</div>
+          <div className="metric-box-sub">Reservas confirmadas, tienda, clases y torneos pagados</div>
         </div>
         <div className="metric-box">
           <div className="metric-box-top"><span className="metric-box-label">Pendiente de pago</span><div className="metric-box-icon"><i className="material-icons">schedule</i></div></div>
           <div className="metric-box-value">{formatMoney(summary.pending)}</div>
-          <div className="metric-box-sub">{plural(summary.pendingTransactions, 'pedido pendiente', 'pedidos pendientes')}</div>
+          <div className="metric-box-sub">{plural(summary.pendingTransactions, 'movimiento pendiente', 'movimientos pendientes')}</div>
         </div>
         <div className="metric-box">
           <div className="metric-box-top"><span className="metric-box-label">Movimientos</span><div className="metric-box-icon"><i className="material-icons">receipt_long</i></div></div>
@@ -498,7 +499,7 @@ function RevenueDashboard({ report, onRefresh, loading }) {
         <div className="metric-box">
           <div className="metric-box-top"><span className="metric-box-label">Método registrado</span><div className="metric-box-icon"><i className="material-icons">credit_card</i></div></div>
           <div className="metric-box-value">{summary.paymentMethodsRecorded}</div>
-          <div className="metric-box-sub">Pedidos de tienda con método de pago guardado</div>
+          <div className="metric-box-sub">Movimientos con método de pago guardado</div>
         </div>
       </div>
 
@@ -556,7 +557,7 @@ function RevenueDashboard({ report, onRefresh, loading }) {
       <section className="admin-card-pro admin-revenue-transactions">
         <div className="admin-toolbar">
           <span className="admin-toolbar-title">Movimientos recientes</span>
-          <span className="admin-small">El método solo se guarda en pedidos. Reservas confirmadas y clases activas se muestran como ingreso registrado, no como pago verificado.</span>
+          <span className="admin-small">Las clases y torneos muestran el método y estado simulados; las reservas antiguas pueden no tener método registrado.</span>
         </div>
         <Table
           head={['Fecha', 'Cliente', 'Origen', 'Detalle', 'Importe', 'Método de pago', 'Estado']}

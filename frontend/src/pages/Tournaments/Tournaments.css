@@ -378,6 +378,11 @@
   font-size: 0.9rem;
 }
 
+.my-reg-status.payment-pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
 /* Modal */
 .tournament-modal-overlay {
   position: fixed;

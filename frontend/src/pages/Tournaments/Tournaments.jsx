@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
+import PaymentSimulator from '../../components/PaymentSimulator/PaymentSimulator'
 import './Tournaments.css'
 
 import t1 from '../../img/Torneo1.png'
@@ -27,11 +28,11 @@ const formatDate = (dateStr) => {
 
 const formatPrice = (p) => p ? `$${p.toLocaleString('es-CO')}` : '$0'
 
-const formatCard = (val) =>
-  val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
-
-const formatExpiry = (val) =>
-  val.replace(/\D/g, '').slice(0, 4).replace(/^(\d{2})(\d)/, '$1/$2')
+const PAYMENT_METHOD_LABELS = {
+  CARD: 'Tarjeta (simulada)',
+  PSE: 'PSE (simulado)',
+  CASH: 'Efectivo (pendiente)',
+}
 
 // Convierte un torneo tal como llega de la API al formato que usa esta página
 const toViewTournament = (t) => ({
@@ -59,6 +60,9 @@ const toViewRegistration = (r) => ({
   category: r.tournament.category,
   prize: formatPrice(r.tournament.prize),
   fee: r.tournament.fee,
+  amount: r.amount,
+  paymentMethod: r.paymentMethod,
+  paymentStatus: r.paymentStatus,
   level: r.level,
 })
 
@@ -74,15 +78,15 @@ function Tournaments() {
   const [step, setStep] = useState('form')
   const [showModal, setShowModal] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [successMessage, setSuccessMessage] = useState('')
   const [activeTab, setActiveTab] = useState('active')
   const [cancelTarget, setCancelTarget] = useState(null)
 
   const [form, setForm] = useState({ level: '' })
   const [formError, setFormError] = useState('')
 
-  // El pago es simulado: los datos de la tarjeta solo se validan aquí,
-  // NUNCA se envían a la API ni se guardan en ningún sitio
-  const [payment, setPayment] = useState({ card: '', holder: '', expiry: '', cvv: '' })
+  const [paymentMethod, setPaymentMethod] = useState('CARD')
+  const [paymentOutcome, setPaymentOutcome] = useState('APPROVED')
   const [paymentError, setPaymentError] = useState('')
   const [paying, setPaying] = useState(false)
 
@@ -112,7 +116,8 @@ function Tournaments() {
   const handleOpenModal = (tournament) => {
     setSelectedTournament(tournament)
     setForm({ level: '' })
-    setPayment({ card: '', holder: '', expiry: '', cvv: '' })
+    setPaymentMethod('CARD')
+    setPaymentOutcome('APPROVED')
     setFormError('')
     setPaymentError('')
     setStep('form')
@@ -135,19 +140,20 @@ function Tournaments() {
   }
 
   const handlePayment = async () => {
-    const rawCard = payment.card.replace(/\s/g, '')
-    if (rawCard.length < 16 || !payment.holder || !payment.expiry || payment.cvv.length < 3) {
-      setPaymentError('Por favor completa todos los datos de pago.')
+    setPaymentError('')
+    if (paymentMethod !== 'CASH' && paymentOutcome === 'DECLINED') {
+      setPaymentError('La transacción de prueba fue rechazada. No se registró la inscripción.')
       return
     }
-    setPaymentError('')
     setPaying(true)
 
     try {
-      // A la API solo se envía el nivel: ella comprueba que queden cupos
-      await api.registerToTournament(selectedTournament.id, { level: form.level })
+      await api.registerToTournament(selectedTournament.id, { level: form.level, paymentMethod })
       await loadData()
       setShowModal(false)
+      setSuccessMessage(paymentMethod === 'CASH'
+        ? 'Inscripción confirmada; el pago en efectivo queda pendiente.'
+        : '¡Inscripción y pago simulado confirmados!')
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3500)
     } catch (err) {
@@ -345,17 +351,17 @@ function Tournaments() {
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">credit_card</i>
-                        <span>Pago simulado</span>
+                        <span>{PAYMENT_METHOD_LABELS[reg.paymentMethod] || 'Método no registrado'}</span>
                       </div>
                       <div className="my-reg-detail">
                         <i className="material-icons">payments</i>
-                        <span>Inscripción: {formatPrice(reg.fee || 0)}</span>
+                        <span>Inscripción: {reg.amount == null ? 'Importe no registrado' : formatPrice(reg.amount)}</span>
                       </div>
 
                       <div className="my-reg-footer">
-                        <span className="my-reg-status">
-                          <i className="material-icons">check_circle</i>
-                          Confirmada
+                        <span className={`my-reg-status ${reg.paymentStatus === 'PENDING' ? 'payment-pending' : ''}`}>
+                          <i className="material-icons">{reg.paymentStatus === 'PENDING' ? 'schedule' : 'check_circle'}</i>
+                          {reg.paymentStatus === 'PENDING' ? 'Pago pendiente' : reg.paymentStatus === 'PAID' ? 'Pagada' : 'Confirmada'}
                         </span>
                         <button
                           className="my-reg-cancel-btn"
@@ -488,75 +494,20 @@ function Tournaments() {
                   </div>
                 )}
 
-                <div className="credit-card-preview">
-                  <div className="credit-card-chip">
-                    <i className="material-icons">contactless</i>
-                  </div>
-                  <div className="credit-card-number">
-                    {payment.card || '•••• •••• •••• ••••'}
-                  </div>
-                  <div className="credit-card-bottom">
-                    <div>
-                      <p className="credit-card-label">Titular</p>
-                      <p className="credit-card-value">
-                        {payment.holder || 'NOMBRE APELLIDO'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="credit-card-label">Vence</p>
-                      <p className="credit-card-value">{payment.expiry || 'MM/AA'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="tournament-form-field">
-                  <label>Número de tarjeta</label>
-                  <input
-                    type="text"
-                    placeholder="1234 5678 9012 3456"
-                    value={payment.card}
-                    maxLength={19}
-                    onChange={e => setPayment(p => ({ ...p, card: formatCard(e.target.value) }))}
-                  />
-                </div>
-
-                <div className="tournament-form-field">
-                  <label>Nombre del titular</label>
-                  <input
-                    type="text"
-                    placeholder="Como aparece en la tarjeta"
-                    value={payment.holder}
-                    onChange={e => setPayment(p => ({ ...p, holder: e.target.value.toUpperCase() }))}
-                  />
-                </div>
-
-                <div className="payment-row">
-                  <div className="tournament-form-field">
-                    <label>Fecha de vencimiento</label>
-                    <input
-                      type="text"
-                      placeholder="MM/AA"
-                      value={payment.expiry}
-                      maxLength={5}
-                      onChange={e => setPayment(p => ({ ...p, expiry: formatExpiry(e.target.value) }))}
-                    />
-                  </div>
-                  <div className="tournament-form-field">
-                    <label>CVV</label>
-                    <input
-                      type="password"
-                      placeholder="•••"
-                      value={payment.cvv}
-                      maxLength={4}
-                      onChange={e => setPayment(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '') }))}
-                    />
-                  </div>
-                </div>
-
-                <p className="payment-disclaimer">
-                  <i className="material-icons">lock</i>
-                  Pago simulado — ningún dato real es procesado
-                </p>
+                <PaymentSimulator
+                  method={paymentMethod}
+                  onMethodChange={(method) => {
+                    setPaymentMethod(method)
+                    setPaymentError('')
+                  }}
+                  outcome={paymentOutcome}
+                  onOutcomeChange={(outcome) => {
+                    setPaymentOutcome(outcome)
+                    setPaymentError('')
+                  }}
+                  cashLabel="Efectivo (pago pendiente)"
+                  cashDescription="La inscripción quedará activa con pago pendiente en efectivo."
+                />
 
                 <div className="payment-actions">
                   <button className="payment-back-btn" onClick={() => setStep('form')} disabled={paying}>
@@ -572,7 +523,7 @@ function Tournaments() {
                     ) : (
                       <>
                         <i className="material-icons">payment</i>
-                        Pagar {formatPrice(selectedTournament.fee)}
+                        {paymentMethod === 'CASH' ? 'Registrar pago pendiente' : `Simular pago ${formatPrice(selectedTournament.fee)}`}
                       </>
                     )}
                   </button>
@@ -613,7 +564,7 @@ function Tournaments() {
       {showSuccess && (
         <div className="tournament-toast">
           <i className="material-icons">check_circle</i>
-          ¡Inscripción y pago confirmados exitosamente!
+          {successMessage}
         </div>
       )}
 

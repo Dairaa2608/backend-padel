@@ -16,7 +16,7 @@ export const orderNumber = (order) => `#${String(order._id).slice(-6).toUpperCas
 
 export const COURT_TYPES = { INDOOR: 'Interior', OUTDOOR: 'Exterior' }
 export const ROLES = { USER: 'Cliente', ADMIN: 'Administrador' }
-export const PAYMENT_METHODS = { CARD: 'Tarjeta', PSE: 'PSE', CASH: 'Contraentrega' }
+export const PAYMENT_METHODS = { CARD: 'Tarjeta (simulada)', PSE: 'PSE (simulado)', CASH: 'Efectivo / contraentrega' }
 export const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 // Estado → [texto, clase de color de Admin.css]
