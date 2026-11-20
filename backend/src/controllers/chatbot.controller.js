@@ -1,5 +1,7 @@
-import { GoogleGenAI } from '@google/genai'
 import { AppError } from '../utils/AppError.js'
+
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions'
+const FREE_MODEL = 'openrouter/free'
 
 const SYSTEM_INSTRUCTION = `Eres el asistente virtual de PadelZone, un club de pádel. Responde en español, con amabilidad y de forma breve.
 Ayuda con orientación general sobre reservas, canchas, clases, torneos y productos de la tienda.
@@ -8,33 +10,71 @@ No solicites contraseñas, datos de tarjetas, códigos de verificación ni docum
 
 export async function sendMessage(req, res) {
   const { messages } = req.body
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
-    throw new AppError(503, 'CHATBOT_NOT_CONFIGURED', 'El asistente aún no está configurado. Añade GEMINI_API_KEY al archivo .env del backend.')
+    throw new AppError(503, 'CHATBOT_NOT_CONFIGURED', 'Añade OPENROUTER_API_KEY al archivo .env del backend para activar el asistente.')
   }
 
-  const client = new GoogleGenAI({ apiKey })
-  let interaction
+  let response
   try {
-    interaction = await client.interactions.create({
-      model: process.env.GEMINI_MODEL || 'gemini-4-hydrogen',
-      input: messages.map(({ role, content }) => ({
-        role: role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: content }],
-      })),
-      generation_config: { max_output_tokens: 300 },
-      system_instruction: SYSTEM_INSTRUCTION,
-      store: false,
+    response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: FREE_MODEL,
+        messages: [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          ...messages.map(({ role, content }) => ({ role, content })),
+        ],
+        max_tokens: 300,
+      }),
+      signal: AbortSignal.timeout(30_000),
     })
   } catch (error) {
-    console.error('Falló la solicitud a Gemini para el chatbot.', {
+    console.error('Falló la conexión con OpenRouter para el chatbot.', {
       name: error instanceof Error ? error.name : 'UnknownError',
-      status: error?.status,
+      message: error instanceof Error ? error.message.slice(0, 500) : undefined,
     })
-    throw new AppError(502, 'CHATBOT_PROVIDER_ERROR', 'No se pudo obtener una respuesta del asistente. Intenta de nuevo.')
+    throw new AppError(502, 'CHATBOT_PROVIDER_ERROR', 'No se pudo conectar con el asistente. Intenta de nuevo.')
   }
 
-  const reply = interaction.output_text?.trim()
+  let result
+  try {
+    result = await response.json()
+  } catch (error) {
+    console.error('OpenRouter devolvió una respuesta inválida para el chatbot.', {
+      status: response.status,
+      name: error instanceof Error ? error.name : 'UnknownError',
+    })
+    throw new AppError(502, 'CHATBOT_PROVIDER_ERROR', 'El proveedor devolvió una respuesta inválida. Intenta de nuevo.')
+  }
+
+  if (!response.ok) {
+    const providerMessage = typeof result?.error?.message === 'string'
+      ? result.error.message.slice(0, 500)
+      : undefined
+    console.error('OpenRouter rechazó la solicitud del chatbot.', {
+      status: response.status,
+      message: providerMessage,
+    })
+    if (response.status === 401 || response.status === 403) {
+      throw new AppError(502, 'CHATBOT_PROVIDER_AUTH_ERROR', 'OpenRouter rechazó la clave. Revisa OPENROUTER_API_KEY en backend/.env.')
+    }
+    if (response.status === 429) {
+      throw new AppError(429, 'CHATBOT_RATE_LIMIT', 'Se alcanzó el límite gratuito de OpenRouter. Intenta más tarde.')
+    }
+    throw new AppError(502, 'CHATBOT_PROVIDER_ERROR', 'OpenRouter no pudo generar una respuesta. Intenta de nuevo.')
+  }
+
+  const content = result.choices?.[0]?.message?.content
+  const reply = typeof content === 'string'
+    ? content.trim()
+    : Array.isArray(content)
+      ? content.filter((part) => part.type === 'text').map((part) => part.text).join('').trim()
+      : ''
   if (!reply) {
     throw new AppError(502, 'CHATBOT_EMPTY_RESPONSE', 'El asistente no generó una respuesta. Intenta de nuevo.')
   }
