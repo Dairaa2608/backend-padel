@@ -437,7 +437,7 @@
   .cart-item-image, .cart-shipping-progress, .cart-footer, .checkout-modal, .checkout-items,
   .checkout-item, .success-box, .profile-stat-card, .profile-tabs, .profile-empty,
   .payment-simulator-panel,
-  .profile-data-card, .chatbox-card, .chatbox-messages, .chat-bubble.assistant,
+  .profile-data-card,
   .forgot-modal, .whyus-front, .courtesy-banner-light
 ) {
   background: var(--dm-bg-card) !important;
@@ -451,7 +451,7 @@
 
 /* Botones y campos claros */
 [data-theme="dark"] :is(
-  .btn-suelta, .chat-option-btn, .profile-edit-btn, .product-btn--disabled,
+  .btn-suelta, .profile-edit-btn, .product-btn--disabled,
   .payment-method, .personas-btn, .modal-step.active, .tournament-fee, .my-reg-status,
   .payment-simulator-method,
   .court-modal-price, .qty-btn, .btn-secondary, .tournaments-tab, .profile-tab

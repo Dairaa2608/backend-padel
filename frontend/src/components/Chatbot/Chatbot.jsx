@@ -19,6 +19,13 @@ export default function Chatbot() {
   const inputRef = useRef(null)
   const endRef = useRef(null)
 
+  // Otras páginas (por ejemplo Contacto) pueden abrir el asistente con este evento
+  useEffect(() => {
+    const open = () => setIsOpen(true)
+    window.addEventListener('padelzone:abrir-chat', open)
+    return () => window.removeEventListener('padelzone:abrir-chat', open)
+  }, [])
+
   useEffect(() => {
     if (isOpen) inputRef.current?.focus()
   }, [isOpen])

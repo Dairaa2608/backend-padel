@@ -1,80 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
 import './Contact.css'
 
-const responses = {
-  'horarios': 'Nuestros horarios son de Lunes a Domingo de 7:00 AM a 11:00 PM. ¡Te esperamos!',
-  'precios': 'Nuestras tarifas son:\n• Central: $120.000/hora\n• Premium: $160.000/hora\n• Recreativa: $100.000/hora\n• Profesional: $180.000/hora\n• Express: $90.000/hora',
-  'reservas': 'Las reservas se hacen online en la sección "Reservar" de nuestra página web. También puedes llamarnos al +57 300 000 0000.',
-  'contacto': 'Puedes contactarnos en:\n• Dirección: Calle Pádel 123, Neiva, Huila\n• Teléfono: +57 300 000 0000\n• Email: info@padelzone.com',
-  'servicios': 'Ofrecemos:\n• Reservas online\n• Clases de pádel\n• Torneos\n• Tienda deportiva\n• Gimnasio\n• Programa VIP\n• Grabación de partidos',
-  'ubicacion': 'Estamos ubicados en Calle Pádel 123, Neiva, Huila, Colombia.',
-  'politicas': 'Nuestras políticas:\n• Cancelación gratuita hasta 24h antes\n• Llegar 10 min antes de la reserva\n• Equipamiento básico incluido\n• Máximo 4 jugadores por cancha',
-  'default': '¡Hola! Soy el asistente de PadelZone. ¿En qué puedo ayudarte?'
-}
-
-const quickOptions = [
-  { key: 'horarios', label: 'Horarios', icon: 'schedule' },
-  { key: 'precios', label: 'Precios', icon: 'attach_money' },
-  { key: 'reservas', label: 'Reservas', icon: 'event_available' },
-  { key: 'contacto', label: 'Contacto', icon: 'contact_phone' },
-  { key: 'servicios', label: 'Servicios', icon: 'sports_tennis' },
-  { key: 'ubicacion', label: 'Ubicación', icon: 'location_on' },
-  { key: 'politicas', label: 'Políticas', icon: 'info' }
-]
-
-const initialMessages = [
-  {
-    role: 'assistant',
-    text: '¡Hola! Soy el asistente de PadelZone 🎾 ¿En qué puedo ayudarte?',
-    showOptions: true
-  }
-]
+// Abre el asistente con IA (el botón verde flotante, components/Chatbot)
+const openChatbot = () => window.dispatchEvent(new Event('padelzone:abrir-chat'))
 
 function Contact() {
-  const [messages, setMessages] = useState(initialMessages)
-  const [loading, setLoading] = useState(false)
-
-  const messagesContainerRef = useRef(null)
-
-  useEffect(() => {
-    const container = messagesContainerRef.current
-    if (container) {
-      container.scrollTop = container.scrollHeight
-    }
-  }, [messages, loading])
-
-  const sendMessage = useCallback((optionKey) => {
-    if (loading) return
-
-    const option = quickOptions.find(opt => opt.key === optionKey)
-    if (!option) return
-
-    const userMsg = {
-      role: 'user',
-      text: option.label,
-      option: optionKey
-    }
-
-    setMessages(prev => [...prev, userMsg])
-    setLoading(true)
-
-    const getRandomDelay = () => 800 + Math.random() * 700
-    setTimeout(() => {
-      const reply = responses[optionKey] || responses.default
-
-      setMessages(prev => [
-        ...prev,
-        {
-          role: 'assistant',
-          text: reply,
-          showOptions: true
-        }
-      ])
-
-      setLoading(false)
-    }, getRandomDelay())
-  }, [loading])
-
   return (
     <div className="contact-page">
 
@@ -142,6 +71,12 @@ function Contact() {
 
             </div>
 
+
+          </div>
+
+          {/* MAPA Y ASISTENTE */}
+          <div className="contact-side">
+
             <div className="contact-map-card">
               <iframe
                 title="Ubicación PadelZone"
@@ -154,94 +89,18 @@ function Contact() {
               />
             </div>
 
-          </div>
-
-          {/* CHATBOX */}
-          <div className="chatbox-card">
-
-            <div className="chatbox-header">
-              <div className="chatbox-avatar">
+            <div className="contact-assistant-card">
+              <div className="contact-info-icon">
                 <i className="material-icons">smart_toy</i>
               </div>
               <div>
-                <p className="chatbox-title">Asistente PadelZone</p>
-                <p className="chatbox-status">
-                  <span className="chatbox-dot" />
-                  En línea
-                </p>
+                <h5>¿Tienes preguntas?</h5>
+                <p>Nuestro asistente con IA conoce las canchas, horarios, clases, torneos y productos del club.</p>
+                <button type="button" className="contact-assistant-btn" onClick={openChatbot}>
+                  <i className="material-icons">chat</i>
+                  Hablar con el asistente
+                </button>
               </div>
-            </div>
-
-            <div className="chatbox-messages" ref={messagesContainerRef}>
-
-              {messages.map((msg, i) => (
-
-                msg.role === 'assistant' ? (
-
-                  <div key={i} className="bot-msg">
-                    <div className="bubble-row">
-                      <div className="chat-bot-icon">
-                        <i className="material-icons">smart_toy</i>
-                      </div>
-                      <div className="chat-bubble assistant">
-                        {msg.text.split('\n').map((line, index, arr) => (
-                          <span key={index}>
-                            {line}
-                            {index < arr.length - 1 && <br />}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    {msg.showOptions && (
-                      <div className="chat-options">
-                        {quickOptions.map((option) => (
-                          <button
-                            key={option.key}
-                            className="chat-option-btn"
-                            onClick={() => sendMessage(option.key)}
-                            disabled={loading}
-                          >
-                            <i className="material-icons option-icon">{option.icon}</i>
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                ) : (
-
-                  <div key={i} className="chat-bubble-wrapper user">
-                    <div className="chat-bubble user">
-                      {msg.text.split('\n').map((line, index, arr) => (
-                        <span key={index}>
-                          {line}
-                          {index < arr.length - 1 && <br />}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                )
-
-              ))}
-
-              {loading && (
-                <div className="bot-msg">
-                  <div className="bubble-row">
-                    <div className="chat-bot-icon">
-                      <i className="material-icons">smart_toy</i>
-                    </div>
-                    <div className="chat-bubble assistant typing">
-                      <span />
-                      <span />
-                      <span />
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </div>
 
           </div>
