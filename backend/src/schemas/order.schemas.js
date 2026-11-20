@@ -1,10 +1,9 @@
 import { z } from 'zod'
+import { PAYMENT_METHODS } from '../utils/payment.js'
 
 // Envío: $15.000, gratis desde $300.000 (lo calcula siempre el servidor)
 export const SHIPPING_COST = 15000
 export const FREE_SHIPPING_FROM = 300000
-export const PAYMENT_METHODS = ['CARD', 'PSE', 'CASH']
-
 const objectId = z.string().regex(/^[0-9a-f]{24}$/i, 'El producto no es válido')
 
 // El navegador solo envía QUÉ compra y CUÁNTO. Los precios y el total los pone la API.

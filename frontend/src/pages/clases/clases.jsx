@@ -3,7 +3,9 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { formatPrice, todayString } from '../../utils/courts'
+import PaymentSimulator from '../../components/PaymentSimulator/PaymentSimulator'
 import './clases.css'
+import '../Tournaments/Tournaments.css'
 
 import imgRegular from '../../img/regular.png'
 import imgIntensiva from '../../img/intensivas.jpg'
@@ -29,6 +31,11 @@ const coachPhotos = {
 
 const LEVELS = ['Principiante', 'Intermedio', 'Avanzado']
 const PARTY_SIZES = [1, 2, 4] // el pádel se juega en parejas: nunca 3
+const PAYMENT_METHOD_LABELS = {
+  CARD: 'Tarjeta (simulada)',
+  PSE: 'PSE (simulado)',
+  CASH: 'Efectivo (pendiente)',
+}
 
 // "2026-11-16" → "Lun, 16 de nov"
 const dateLabel = (date) => {
@@ -66,14 +73,6 @@ const toViewProgram = (p) => ({
   })),
 })
 
-const formatCard = (val) =>
-  val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim()
-
-const formatExpiry = (val) =>
-  val.replace(/\D/g, '').slice(0, 4).replace(/^(\d{2})(\d)/, '$1/$2')
-
-const emptyPayment = { card: '', holder: '', expiry: '', cvv: '' }
-
 function Clases() {
   const { user, isAuthenticated } = useAuth()
   const navigate = useNavigate()
@@ -96,7 +95,8 @@ function Clases() {
   const [form, setForm] = useState({ nivel: '', fechaNacimiento: '', horario: '', fecha: '', personas: 2 })
   const [formError, setFormError] = useState('')
   const [fechas, setFechas] = useState([]) // próximos días con clase: [{ date, spotsLeft }]
-  const [payment, setPayment] = useState(emptyPayment)
+  const [paymentMethod, setPaymentMethod] = useState('CARD')
+  const [paymentOutcome, setPaymentOutcome] = useState('APPROVED')
   const [sending, setSending] = useState(false)
 
   // Modal de clase de cortesía. Si se vuelve del registro o del login con
@@ -149,7 +149,8 @@ function Clases() {
     }
     setModal({ mode, clase, grupo })
     setForm({ nivel: '', fechaNacimiento: '', horario: clase.horarios[0], fecha: '', personas: 1 })
-    setPayment(emptyPayment)
+    setPaymentMethod('CARD')
+    setPaymentOutcome('APPROVED')
     setFormError('')
     setFechas([])
     setStep('form')
@@ -191,30 +192,31 @@ function Clases() {
     setStep('payment')
   }
 
-  // El pago es simulado: los datos de la tarjeta solo se validan aquí y NUNCA se envían
   const handlePayment = async () => {
-    if (payment.card.replace(/\s/g, '').length < 16 || !payment.holder || !payment.expiry || payment.cvv.length < 3) {
-      setFormError('Por favor completa todos los datos de pago.')
+    setFormError('')
+    if (paymentMethod !== 'CASH' && paymentOutcome === 'DECLINED') {
+      setFormError('La transacción de prueba fue rechazada. No se registró el pago.')
       return
     }
-    setFormError('')
     setSending(true)
     try {
       const { clase, grupo, mode } = modal
       if (mode === 'MONTHLY') {
         await api.enrollInClass({
           programId: clase.id, groupId: grupo.id, schedule: form.horario,
-          level: form.nivel, birthDate: form.fechaNacimiento,
+          level: form.nivel, birthDate: form.fechaNacimiento, paymentMethod,
         })
       } else {
         await api.bookClass({
           type: 'SINGLE', programId: clase.id, groupId: grupo.id,
-          date: form.fecha, schedule: form.horario, partySize: form.personas,
+          date: form.fecha, schedule: form.horario, partySize: form.personas, paymentMethod,
         })
       }
       await loadData()
       setModal(null)
-      showToast(mode === 'MONTHLY' ? '¡Inscripción confirmada!' : '¡Clase reservada!')
+      showToast(paymentMethod === 'CASH'
+        ? mode === 'MONTHLY' ? 'Inscripción confirmada; el pago en efectivo queda pendiente.' : 'Reserva confirmada; el pago en efectivo queda pendiente.'
+        : mode === 'MONTHLY' ? '¡Inscripción y pago simulado confirmados!' : '¡Clase y pago simulado confirmados!')
     } catch (err) {
       setFormError(err.message)
       setStep('form')
@@ -481,10 +483,14 @@ function Clases() {
                         <i className="material-icons">fitness_center</i>
                         <span>Nivel: {ins.level}</span>
                       </div>
+                      <div className="my-reg-detail">
+                        <i className="material-icons">payments</i>
+                        <span>{ins.amount == null ? 'Importe no registrado' : formatPrice(ins.amount)} · {PAYMENT_METHOD_LABELS[ins.paymentMethod] || 'Método no registrado'}</span>
+                      </div>
                       <div className="my-reg-footer">
-                        <span className="my-reg-status">
-                          <i className="material-icons">check_circle</i>
-                          Activa
+                        <span className={`my-reg-status ${ins.paymentStatus === 'PENDING' ? 'payment-pending' : ''}`}>
+                          <i className="material-icons">{ins.paymentStatus === 'PENDING' ? 'schedule' : 'check_circle'}</i>
+                          {ins.paymentStatus === 'PENDING' ? 'Pago pendiente' : ins.paymentStatus === 'PAID' ? 'Pagada' : 'Activa'}
                         </span>
                         <button className="my-reg-cancel-btn" onClick={() => setCancelTarget({ kind: 'enrollment', id: ins._id })}>
                           <i className="material-icons">cancel</i>
@@ -512,13 +518,13 @@ function Clases() {
                         <span>Grupo: {groupName(b.program, b.group)} · {peopleLabel(b.partySize)}</span>
                       </div>
                       <div className="my-reg-detail">
-                        <i className="material-icons">payments</i>
-                        <span>{b.price === 0 ? 'Gratis' : formatPrice(b.price)}</span>
+                        <i className="material-icons">{b.price === 0 ? 'card_giftcard' : 'payments'}</i>
+                        <span>{b.price === 0 ? 'Gratis' : `${formatPrice(b.price)} · ${PAYMENT_METHOD_LABELS[b.paymentMethod] || 'Método no registrado'}`}</span>
                       </div>
                       <div className="my-reg-footer">
-                        <span className="my-reg-status">
-                          <i className="material-icons">check_circle</i>
-                          Confirmada
+                        <span className={`my-reg-status ${b.paymentStatus === 'PENDING' ? 'payment-pending' : ''}`}>
+                          <i className="material-icons">{b.paymentStatus === 'PENDING' ? 'schedule' : 'check_circle'}</i>
+                          {b.paymentStatus === 'PENDING' ? 'Pago pendiente' : b.type === 'COURTESY' ? 'Cortesía confirmada' : b.paymentStatus === 'PAID' ? 'Pagada' : 'Confirmada'}
                         </span>
                         {b.date >= todayString() && (
                           <button className="my-reg-cancel-btn" onClick={() => setCancelTarget({ kind: 'booking', id: b._id })}>
@@ -657,54 +663,20 @@ function Clases() {
                   </div>
                 </div>
 
-                <div className="credit-card-preview" style={{ background: modal.clase.color }}>
-                  <div className="credit-card-chip">
-                    <i className="material-icons">contactless</i>
-                  </div>
-                  <div className="credit-card-number">
-                    {payment.card || 'xxxx xxxx xxxx xxxx'}
-                  </div>
-                  <div className="credit-card-bottom">
-                    <div>
-                      <p className="credit-card-label">Titular</p>
-                      <p className="credit-card-value">{payment.holder || 'NOMBRE APELLIDO'}</p>
-                    </div>
-                    <div>
-                      <p className="credit-card-label">Vence</p>
-                      <p className="credit-card-value">{payment.expiry || 'MM/AA'}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="tournament-form-field">
-                  <label>Número de tarjeta</label>
-                  <input type="text" placeholder="1234 5678 9012 3456" value={payment.card} maxLength={19}
-                    onChange={e => setPayment(p => ({ ...p, card: formatCard(e.target.value) }))} />
-                </div>
-
-                <div className="tournament-form-field">
-                  <label>Nombre del titular</label>
-                  <input type="text" placeholder="Como aparece en la tarjeta" value={payment.holder}
-                    onChange={e => setPayment(p => ({ ...p, holder: e.target.value.toUpperCase() }))} />
-                </div>
-
-                <div className="payment-row">
-                  <div className="tournament-form-field">
-                    <label>Fecha de vencimiento</label>
-                    <input type="text" placeholder="MM/AA" value={payment.expiry} maxLength={5}
-                      onChange={e => setPayment(p => ({ ...p, expiry: formatExpiry(e.target.value) }))} />
-                  </div>
-                  <div className="tournament-form-field">
-                    <label>CVV</label>
-                    <input type="password" placeholder="xxx" value={payment.cvv} maxLength={4}
-                      onChange={e => setPayment(p => ({ ...p, cvv: e.target.value.replace(/\D/g, '') }))} />
-                  </div>
-                </div>
-
-                <p className="payment-disclaimer">
-                  <i className="material-icons">lock</i>
-                  Pago simulado - los datos de la tarjeta no se envían ni se guardan
-                </p>
+                <PaymentSimulator
+                  method={paymentMethod}
+                  onMethodChange={(method) => {
+                    setPaymentMethod(method)
+                    setFormError('')
+                  }}
+                  outcome={paymentOutcome}
+                  onOutcomeChange={(outcome) => {
+                    setPaymentOutcome(outcome)
+                    setFormError('')
+                  }}
+                  cashLabel="Efectivo (pago pendiente)"
+                  cashDescription="La inscripción o reserva quedará activa con pago pendiente en efectivo."
+                />
 
                 <div className="payment-actions">
                   <button className="payment-back-btn" onClick={() => setStep('form')} disabled={sending}>
@@ -713,7 +685,7 @@ function Clases() {
                   </button>
                   <button className="tournament-modal-btn" style={{ backgroundColor: modal.clase.color }} onClick={handlePayment} disabled={sending}>
                     <i className="material-icons">{sending ? 'hourglass_empty' : 'payment'}</i>
-                    {sending ? 'Procesando...' : `Pagar ${formatPrice(totalModal)}`}
+                    {sending ? 'Procesando...' : paymentMethod === 'CASH' ? 'Registrar pago pendiente' : `Simular pago ${formatPrice(totalModal)}`}
                   </button>
                 </div>
               </div>

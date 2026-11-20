@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PAYMENT_METHODS } from '../utils/payment.js'
 
 // La inscripción mensual a un grupo es siempre individual (1 persona).
 // Las clases sueltas y de cortesía pueden ser para 1, 2 o 4 personas (nunca 3).
@@ -13,11 +14,12 @@ const level = z.enum(['Principiante', 'Intermedio', 'Avanzado'], 'Elige tu nivel
 
 // Inscripción mensual a un grupo (siempre 1 persona)
 export const enrollSchema = z.object({
-programId: objectId('El programa no es válido'),
-groupId: objectId('El grupo no es válido'),
-schedule: z.string().min(1, 'Elige un horario'),
-level,
-birthDate: date,
+  programId: objectId('El programa no es válido'),
+  groupId: objectId('El grupo no es válido'),
+  schedule: z.string().min(1, 'Elige un horario'),
+  level,
+  birthDate: date,
+  paymentMethod: z.enum(PAYMENT_METHODS, 'Elige un método de pago'),
 })
 
 // Clase suelta o de cortesía en una fecha concreta
@@ -29,13 +31,18 @@ export const bookClassSchema = z
     date,
     schedule: z.string().min(1, 'Elige un horario'),
     partySize: z.coerce
-    .number()
-    .refine((n) => CLASS_PARTY_SIZES.includes(n), 'La clase es para 1, 2 o 4 personas'),
+      .number()
+      .refine((n) => CLASS_PARTY_SIZES.includes(n), 'La clase es para 1, 2 o 4 personas'),
+    paymentMethod: z.enum(PAYMENT_METHODS, 'Elige un método de pago').optional(),
     cedula: z.string().trim().regex(/^\d{6,10}$/, 'La cédula debe tener entre 6 y 10 dígitos').optional(),
-})
-.refine((data) => data.type !== 'COURTESY' || data.cedula, {
+  })
+  .refine((data) => data.type === 'COURTESY' ? !data.paymentMethod : Boolean(data.paymentMethod), {
+    message: 'Elige un método de pago para la clase',
+    path: ['paymentMethod'],
+  })
+  .refine((data) => data.type !== 'COURTESY' || data.cedula, {
     message: 'Para la clase de cortesía necesitamos tu cédula',
     path: ['cedula'],
-    })
+  })
 
 export const availabilityQuerySchema = z.object({ date })

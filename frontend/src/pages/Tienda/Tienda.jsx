@@ -4,6 +4,7 @@ import './Tienda.css'
 import { api } from '../../services/api'
 import { useAuth } from '../../contexts/AuthContext'
 import { toViewProduct } from '../../utils/products'
+import PaymentSimulator from '../../components/PaymentSimulator/PaymentSimulator'
 
 // Solo para mostrar el total aproximado: el total real lo calcula la API
 const SHIPPING = 15000
@@ -410,7 +411,7 @@ function CartDrawer({
 
 function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCost, total, user, onConfirmPay }) {
   const [step, setStep] = useState('summary')
-  const [form, setForm] = useState({ phone: user?.phone || '', address: '', method: 'CARD' })
+  const [form, setForm] = useState({ phone: user?.phone || '', address: '', method: 'CARD', outcome: 'APPROVED' })
   const [payError, setPayError] = useState('')
 
   if (!open) return null
@@ -428,11 +429,15 @@ function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCo
   const handleSubmit = async (e) => {
     e.preventDefault()
     setPayError('')
+    if (form.method !== 'CASH' && form.outcome === 'DECLINED') {
+      setPayError('La transacción de prueba fue rechazada. No se creó el pedido.')
+      return
+    }
     setStep('processing')
     try {
       await onConfirmPay(form)
       setStep('summary')
-      setForm({ phone: user?.phone || '', address: '', method: 'CARD' })
+      setForm({ phone: user?.phone || '', address: '', method: 'CARD', outcome: 'APPROVED' })
     } catch (err) {
       setPayError(err.message)
       setStep('form')
@@ -521,36 +526,20 @@ function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCo
                 />
               </div>
 
-              <div className="form-group">
-                <label>Método de pago</label>
-                <div className="payment-methods">
-                  {[
-                    { value: 'CARD', icon: 'credit_card', label: PAYMENT_LABELS.CARD },
-                    { value: 'PSE', icon: 'account_balance', label: PAYMENT_LABELS.PSE },
-                    { value: 'CASH', icon: 'payments', label: PAYMENT_LABELS.CASH },
-                  ].map((m) => (
-                    <label
-                      key={m.value}
-                      className={`payment-method ${form.method === m.value ? 'payment-method--active' : ''}`}
-                    >
-                      <input
-                        type="radio"
-                        name="payment"
-                        value={m.value}
-                        checked={form.method === m.value}
-                        onChange={(e) => setForm({ ...form, method: e.target.value })}
-                      />
-                      <i className="material-icons">{m.icon}</i>
-                      {m.label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <p className="checkout-note">
-                <i className="material-icons">info</i>
-                Pago simulado: no se realiza ningún cobro y no se piden datos de tarjeta.
-              </p>
+              <PaymentSimulator
+                method={form.method}
+                onMethodChange={(method) => {
+                  setForm((current) => ({ ...current, method }))
+                  setPayError('')
+                }}
+                outcome={form.outcome}
+                onOutcomeChange={(outcome) => {
+                  setForm((current) => ({ ...current, outcome }))
+                  setPayError('')
+                }}
+                cashLabel="Contraentrega"
+                cashDescription="El pedido quedará pendiente; pagarás al recibirlo."
+              />
 
               {payError && <p className="checkout-error">{payError}</p>}
 
@@ -559,7 +548,9 @@ function CheckoutModal({ open, onClose, items, formatPrice, subtotal, shippingCo
                   Volver
                 </button>
                 <button type="submit" className="cart-checkout-btn">
-                  Pagar {formatPrice(total)} COP
+                  {form.method === 'CASH'
+                    ? 'Confirmar pedido contraentrega'
+                    : `Simular pago ${formatPrice(total)} COP`}
                 </button>
               </div>
             </form>

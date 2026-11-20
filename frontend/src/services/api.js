@@ -233,18 +233,18 @@ class Api {
   }
 
   /** POST /api/classes/enrollments — inscripción mensual (siempre individual) */
-  enrollInClass({ programId, groupId, schedule, level, birthDate }) {
+  enrollInClass({ programId, groupId, schedule, level, birthDate, paymentMethod }) {
     return request('/classes/enrollments', {
       method: 'POST',
-      body: JSON.stringify({ programId, groupId, schedule, level, birthDate }),
+      body: JSON.stringify({ programId, groupId, schedule, level, birthDate, paymentMethod }),
     })
   }
 
   /** POST /api/classes/bookings — clase suelta o de cortesía (1, 2 o 4 personas) */
-  bookClass({ type, programId, groupId, date, schedule, partySize, cedula }) {
+  bookClass({ type, programId, groupId, date, schedule, partySize, cedula, paymentMethod }) {
     return request('/classes/bookings', {
       method: 'POST',
-      body: JSON.stringify({ type, programId, groupId, date, schedule, partySize, cedula }),
+      body: JSON.stringify({ type, programId, groupId, date, schedule, partySize, cedula, paymentMethod }),
     })
   }
 
@@ -279,10 +279,10 @@ class Api {
   }
 
   /** POST /api/tournaments/:id/register — inscribirse (la API comprueba los cupos) */
-  registerToTournament(tournamentId, { level }) {
+  registerToTournament(tournamentId, { level, paymentMethod }) {
     return request(`/tournaments/${tournamentId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ level }),
+      body: JSON.stringify({ level, paymentMethod }),
     })
   }
 

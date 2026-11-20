@@ -1,5 +1,6 @@
 import { Product, Order } from '../models/index.js'
 import { AppError } from '../utils/AppError.js'
+import { simulatePayment } from '../utils/payment.js'
 import { SHIPPING_COST, FREE_SHIPPING_FROM } from '../schemas/order.schemas.js'
 
 // Devuelve las unidades al inventario (si el pedido no se pudo completar)
@@ -50,8 +51,8 @@ export async function createOrder(req, res) {
       address,
       phone,
       paymentMethod,
-      // Pago simulado: tarjeta y PSE quedan pagados; contraentrega se paga al recibir
-      status: paymentMethod === 'CASH' ? 'PENDING' : 'PAID',
+      // El estado se deriva del método; nunca se envían ni guardan datos de tarjeta.
+      status: simulatePayment(paymentMethod).paymentStatus,
     })
     res.status(201).json({ data: order })
   } catch (error) {

@@ -2,6 +2,7 @@ import { ClassProgram, ClassEnrollment, ClassBooking, ClassSession } from '../mo
 import { availabilityQuerySchema, SINGLE_CLASS_PRICES } from '../schemas/class.schemas.js'
 import { AppError } from '../utils/AppError.js'
 import { hashCedula } from '../utils/cedula.js'
+import { simulatePayment } from '../utils/payment.js'
 import { isPast, weekdayOf, hourFromSlot, todayInColombia } from '../utils/dates.js'
 
 /* ── Ayudas ─────────────────────────────────────────── */
@@ -102,10 +103,11 @@ export async function listUpcomingDates(req, res) {
 
 // POST /api/classes/enrollments
 export async function enroll(req, res) {
-  const { programId, groupId, schedule, level, birthDate } = req.body
+  const { programId, groupId, schedule, level, birthDate, paymentMethod } = req.body
   const partySize = 1 // la inscripción mensual es siempre para una persona
   const { program, group } = await findProgramAndGroup(programId, groupId)
   checkSchedule(program, schedule)
+  const payment = simulatePayment(paymentMethod)
 
   const existing = await ClassEnrollment.findOne({ user: req.user._id, group: group._id })
   if (existing?.status === 'ACTIVE') {
@@ -138,11 +140,12 @@ export async function enroll(req, res) {
     let enrollment
     if (existing) {
       // Se había inscrito y canceló: se reactiva la misma inscripción
-      Object.assign(existing, { status: 'ACTIVE', schedule, level, birthDate, partySize })
+      Object.assign(existing, { status: 'ACTIVE', schedule, level, birthDate, partySize, amount: group.monthlyPrice, ...payment })
       enrollment = await existing.save()
     } else {
       enrollment = await ClassEnrollment.create({
         user: req.user._id, program: program._id, group: group._id, schedule, level, birthDate, partySize,
+        amount: group.monthlyPrice, ...payment,
       })
     }
     res.status(201).json({ data: enrollment })
@@ -190,7 +193,7 @@ export async function cancelEnrollment(req, res) {
 
 // POST /api/classes/bookings
 export async function bookClass(req, res) {
-  const { type, programId, groupId, date, schedule, partySize, cedula } = req.body
+  const { type, programId, groupId, date, schedule, partySize, cedula, paymentMethod } = req.body
   const { program, group } = await findProgramAndGroup(programId, groupId)
   checkSchedule(program, schedule)
   checkClassDate(program, date, schedule)
@@ -232,6 +235,7 @@ export async function bookClass(req, res) {
       partySize,
       // El precio lo calcula el servidor: nunca se acepta el que envía el navegador
       price: isCourtesy ? 0 : SINGLE_CLASS_PRICES[partySize],
+      ...(isCourtesy ? { paymentMethod: null, paymentStatus: 'NOT_REQUIRED' } : simulatePayment(paymentMethod)),
       cedulaHash,
     })
     res.status(201).json({ data: booking })

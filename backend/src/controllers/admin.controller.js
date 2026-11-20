@@ -18,7 +18,7 @@ export async function getStats(req, res) {
   const [
     users, courts, activeCourts, reservations, activeReservations, orders, pendingOrders,
     enrollments, classBookings, registrations, lowStock,
-    reservationsRevenue, ordersRevenue, classesRevenue,
+    reservationsRevenue, ordersRevenue, classBookingsRevenue, enrollmentsRevenue, tournamentsRevenue,
   ] = await Promise.all([
     User.countDocuments(),
     Court.countDocuments(),
@@ -33,8 +33,11 @@ export async function getStats(req, res) {
     Product.find({ active: true, stock: { $lte: 3 } }).select('name stock').sort({ stock: 1 }),
     sumField(Reservation, { status: 'CONFIRMED' }, 'totalPrice'),
     sumField(Order, { status: 'PAID' }, 'total'),
-    sumField(ClassBooking, { status: 'ACTIVE' }, 'price'),
+    sumField(ClassBooking, { status: 'ACTIVE', type: 'SINGLE', paymentStatus: 'PAID' }, 'price'),
+    sumField(ClassEnrollment, { status: 'ACTIVE', paymentStatus: 'PAID' }, 'amount'),
+    sumField(TournamentRegistration, { status: 'ACTIVE', paymentStatus: 'PAID' }, 'amount'),
   ])
+  const classesRevenue = classBookingsRevenue + enrollmentsRevenue
 
   res.json({
     data: {
@@ -44,7 +47,8 @@ export async function getStats(req, res) {
         reservations: reservationsRevenue,
         orders: ordersRevenue,
         classes: classesRevenue,
-        total: reservationsRevenue + ordersRevenue + classesRevenue,
+        tournaments: tournamentsRevenue,
+        total: reservationsRevenue + ordersRevenue + classesRevenue + tournamentsRevenue,
       },
     },
   })
@@ -64,20 +68,33 @@ export async function getRevenueReport(req, res) {
       label: new Intl.DateTimeFormat('es-CO', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date),
       total: 0,
       pending: 0,
-      categories: { courts: 0, store: 0, classes: 0 },
+      categories: { courts: 0, store: 0, classes: 0, tournaments: 0 },
     }]
   }))
 
   const createdAt = { $gte: from, $lt: to }
-  const [reservations, orders, classBookings] = await Promise.all([
+  const paymentDateInRange = {
+    $or: [
+      { paymentDate: createdAt },
+      { paymentDate: { $exists: false }, createdAt },
+    ],
+  }
+  const recordedPayment = { $in: ['PAID', 'PENDING'] }
+  const [reservations, orders, classBookings, classEnrollments, tournamentRegistrations] = await Promise.all([
     Reservation.find({ status: 'CONFIRMED', createdAt })
       .populate('user', 'name email')
       .populate('court', 'name'),
     Order.find({ status: { $in: ['PAID', 'PENDING'] }, createdAt })
       .populate('user', 'name email'),
-    ClassBooking.find({ type: 'SINGLE', status: 'ACTIVE', price: { $gt: 0 }, createdAt })
+    ClassBooking.find({ type: 'SINGLE', status: 'ACTIVE', price: { $gt: 0 }, paymentStatus: recordedPayment, ...paymentDateInRange })
       .populate('user', 'name email')
       .populate('program', 'name'),
+    ClassEnrollment.find({ status: 'ACTIVE', amount: { $gt: 0 }, paymentStatus: recordedPayment, ...paymentDateInRange })
+      .populate('user', 'name email')
+      .populate('program', 'name'),
+    TournamentRegistration.find({ status: 'ACTIVE', amount: { $gt: 0 }, paymentStatus: recordedPayment, ...paymentDateInRange })
+      .populate('user', 'name email')
+      .populate('tournament', 'name'),
   ])
 
   const transactions = [
@@ -105,14 +122,36 @@ export async function getRevenueReport(req, res) {
     })),
     ...classBookings.map((booking) => ({
       id: `class-${booking._id}`,
-      date: booking.createdAt,
+      date: booking.paymentDate ?? booking.createdAt,
       customer: booking.user?.name ?? 'Usuario eliminado',
       email: booking.user?.email ?? '',
       category: 'classes',
       description: booking.program?.name ?? 'Clase suelta',
       amount: booking.price,
-      paymentMethod: null,
-      status: 'CONFIRMED',
+      paymentMethod: booking.paymentMethod,
+      status: booking.paymentStatus,
+    })),
+    ...classEnrollments.map((enrollment) => ({
+      id: `enrollment-${enrollment._id}`,
+      date: enrollment.paymentDate ?? enrollment.createdAt,
+      customer: enrollment.user?.name ?? 'Usuario eliminado',
+      email: enrollment.user?.email ?? '',
+      category: 'classes',
+      description: `${enrollment.program?.name ?? 'Clase'} · inscripción mensual`,
+      amount: enrollment.amount,
+      paymentMethod: enrollment.paymentMethod,
+      status: enrollment.paymentStatus,
+    })),
+    ...tournamentRegistrations.map((registration) => ({
+      id: `tournament-${registration._id}`,
+      date: registration.paymentDate ?? registration.createdAt,
+      customer: registration.user?.name ?? 'Usuario eliminado',
+      email: registration.user?.email ?? '',
+      category: 'tournaments',
+      description: registration.tournament?.name ?? 'Inscripción a torneo',
+      amount: registration.amount,
+      paymentMethod: registration.paymentMethod,
+      status: registration.paymentStatus,
     })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date))
 
@@ -122,7 +161,7 @@ export async function getRevenueReport(req, res) {
     confirmedTransactions: 0,
     pendingTransactions: 0,
     paymentMethodsRecorded: 0,
-    categories: { courts: 0, store: 0, classes: 0 },
+    categories: { courts: 0, store: 0, classes: 0, tournaments: 0 },
   }
 
   for (const transaction of transactions) {
