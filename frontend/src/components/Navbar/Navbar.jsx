@@ -85,6 +85,14 @@ function Navbar() {
           </li>
 
           <li><Link to="/contacto">Contacto</Link></li>
+          {user?.pendingFines > 0 && (
+            <li>
+              <Link to="/perfil" state={{ tab: 'fines' }} className="nav-fine-link" title="Tienes una multa sin pagar">
+                <i className="material-icons left">gavel</i>
+                Multa pendiente
+              </Link>
+            </li>
+          )}
           {needsVerification && (
             <li>
               <Link to="/verificar" className="nav-verify-link" title="Escribe el código que te enviamos al correo">

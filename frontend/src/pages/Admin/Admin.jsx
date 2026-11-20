@@ -10,7 +10,7 @@ import { isPastSlot } from '../../utils/courts'
 import AdminModal from './AdminForms'
 import {
   formatMoney, formatDate, formatDay, hourRange, orderNumber, ageRange, matches,
-  COURT_TYPES, ROLES, PAYMENT_METHODS, RESERVATION_STATUS, ORDER_STATUS,
+  COURT_TYPES, ROLES, PAYMENT_METHODS, RESERVATION_STATUS, ORDER_STATUS, FINE_STATUS, FINE_REASONS,
 } from './adminHelpers'
 import './Admin.css'
 
@@ -24,6 +24,7 @@ const TABS = [
   { id: 'products', label: 'Tienda', title: 'Inventario de la Tienda', icon: 'inventory_2', section: 'Comercio y Usuarios' },
   { id: 'orders', label: 'Pedidos', title: 'Pedidos', icon: 'receipt_long', section: 'Comercio y Usuarios' },
   { id: 'users', label: 'Usuarios', title: 'Usuarios y Roles', icon: 'people_alt', section: 'Comercio y Usuarios' },
+  { id: 'fines', label: 'Multas', title: 'Multas', icon: 'gavel', section: 'Comercio y Usuarios' },
 ]
 const SECTIONS = [...new Set(TABS.map((t) => t.section))]
 const REVENUE_CATEGORIES = [
@@ -31,6 +32,7 @@ const REVENUE_CATEGORIES = [
   { id: 'store', label: 'Tienda', color: '#60a5fa' },
   { id: 'classes', label: 'Clases', color: '#a78bfa' },
   { id: 'tournaments', label: 'Torneos', color: '#f59e0b' },
+  { id: 'fines', label: 'Multas', color: '#ef4444' },
 ]
 const REVENUE_STATUS = {
   ...ORDER_STATUS,
@@ -52,7 +54,7 @@ export default function Admin() {
 
   const [stats, setStats] = useState(null)
   const [revenue, setRevenue] = useState(null)
-  const [data, setData] = useState({ courts: [], reservations: [], classes: [], tournaments: [], products: [], orders: [], users: [] })
+  const [data, setData] = useState({ courts: [], reservations: [], classes: [], tournaments: [], products: [], orders: [], users: [], fines: [] })
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
@@ -71,11 +73,12 @@ export default function Admin() {
       api.adminList('products'),
       api.getAllOrders(),
       api.adminList('users/details'),
+      api.adminList('fines'),
     ])
-      .then(([s, revenueData, courts, reservations, classes, tournaments, products, orders, users]) => {
+      .then(([s, revenueData, courts, reservations, classes, tournaments, products, orders, users, fines]) => {
         setStats(s)
         setRevenue(revenueData)
-        setData({ courts, reservations, classes, tournaments, products, orders, users })
+        setData({ courts, reservations, classes, tournaments, products, orders, users, fines })
       })
       .catch((err) => {
         setLoadError(err.message)
@@ -378,12 +381,50 @@ export default function Admin() {
                     )} />
                 </Section>
               )}
+
+              {tab === 'fines' && (
+                <Section title="Multas" subtitle="Cancelaciones tardías (automáticas: 50 % si se cancela con menos de 24 h) y multas manuales. Con una multa pendiente el usuario no puede reservar, inscribirse ni comprar." onNew={() => setModal({ resource: 'fines' })} newLabel="Nueva multa">
+                  <Toolbar search={search} onSearch={setSearch} placeholder="Buscar por usuario o motivo…"
+                    filters={[['all', 'Todas'], ['PENDING', 'Pendientes'], ['PAID', 'Pagadas'], ['WAIVED', 'Anuladas']]}
+                    filter={statusFilter} onFilter={setStatusFilter} />
+                  <Table head={['Usuario', 'Tipo', 'Motivo', 'Valor', 'Fecha', 'Estado', 'Acciones']}
+                    rows={data.fines
+                      .filter((f) => statusFilter === 'all' || f.status === statusFilter)
+                      .filter((f) => matches(search, f.user?.name, f.user?.email, f.description))}
+                    render={(f) => (
+                      <tr key={f._id}>
+                        <td><strong>{f.user?.name ?? 'Usuario borrado'}</strong><div className="admin-small">{f.user?.email}</div></td>
+                        <td>{FINE_REASONS[f.reason]}{f.createdBy?.name && <div className="admin-small">por {f.createdBy.name}</div>}</td>
+                        <td>{f.description}</td>
+                        <td><strong>{formatMoney(f.amount)}</strong></td>
+                        <td>{formatDate(f.createdAt)}{f.paidAt && <div className="admin-small">pagada {formatDate(f.paidAt)}{f.paymentMethod ? ` · ${PAYMENT_METHODS[f.paymentMethod]}` : ''}</div>}</td>
+                        <td><Status map={FINE_STATUS} value={f.status} /></td>
+                        <td>
+                          {f.status === 'PENDING' ? (
+                            <div className="table-actions">
+                              <button className="btn-icon-subtle" title="Marcar como pagada (en efectivo, en el club)"
+                                onClick={() => window.confirm(`¿Marcar como pagada la multa de ${formatMoney(f.amount)}?`) &&
+                                  run(() => api.adminUpdate('fines', f._id, { status: 'PAID' }), 'Multa marcada como pagada')}>
+                                <i className="material-icons">price_check</i>
+                              </button>
+                              <button className="btn-icon-subtle danger" title="Anular multa"
+                                onClick={() => window.confirm('¿Anular esta multa? El usuario podrá volver a reservar.') &&
+                                  run(() => api.adminUpdate('fines', f._id, { status: 'WAIVED' }), 'Multa anulada')}>
+                                <i className="material-icons">block</i>
+                              </button>
+                            </div>
+                          ) : <span className="admin-muted">—</span>}
+                        </td>
+                      </tr>
+                    )} />
+                </Section>
+              )}
             </>
           )}
         </main>
       </div>
 
-      {modal && <AdminModal resource={modal.resource} item={modal.item} onClose={() => setModal(null)} onSave={save} />}
+      {modal && <AdminModal resource={modal.resource} item={modal.item} users={data.users} onClose={() => setModal(null)} onSave={save} />}
     </div>
   )
 }

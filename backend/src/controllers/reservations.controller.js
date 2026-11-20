@@ -1,8 +1,9 @@
-import { Court, Reservation } from '../models/index.js'
+import { Court, Reservation, Fine } from '../models/index.js'
 import { OPENING_HOUR, CLOSING_HOUR } from '../models/Reservation.js'
 import { availabilityQuerySchema } from '../schemas/reservation.schemas.js'
 import { AppError } from '../utils/AppError.js'
-import { isPast } from '../utils/dates.js'
+import { isPast, hoursUntil } from '../utils/dates.js'
+import { LATE_CANCELLATION_HOURS, LATE_CANCELLATION_RATE } from '../utils/fines.js'
 
 async function findActiveCourt(id) {
   const court = await Court.findById(id)
@@ -94,9 +95,27 @@ export async function cancelReservation(req, res) {
     throw new AppError(400, 'PAST_RESERVATION', 'No puedes cancelar una reserva que ya empezó o pasó')
   }
 
-  // No se borra: se marca como cancelada y el horario queda libre otra vez
-  reservation.status = 'CANCELLED'
-  await reservation.save()
-  await reservation.populate('court', 'name type pricePerHour imageUrl')
-  res.json({ data: reservation })
+  // Cambio atómico: si se pulsa "cancelar" dos veces a la vez, solo una cuenta (y solo se multa una vez)
+  const cancelled = await Reservation.findOneAndUpdate(
+    { _id: reservation._id, status: 'CONFIRMED' },
+    { $set: { status: 'CANCELLED' } },
+    { returnDocument: 'after' },
+  ).populate('court', 'name type pricePerHour imageUrl')
+  if (!cancelled) throw new AppError(409, 'ALREADY_CANCELLED', 'Esta reserva ya estaba cancelada')
+
+  // Multa por cancelación tardía: si la cancela su dueño con menos de 24 h, paga el 50 %.
+  // Si la cancela el administrador (por ejemplo, por lluvia o mantenimiento) no hay multa.
+  let fine = null
+  if (isOwner && hoursUntil(reservation.date, reservation.startHour) < LATE_CANCELLATION_HOURS) {
+    fine = await Fine.create({
+      user: reservation.user,
+      reason: 'LATE_CANCELLATION',
+      description: `Cancelación con menos de ${LATE_CANCELLATION_HOURS} h · ${cancelled.court?.name ?? 'Reserva'} ${reservation.date}`,
+      amount: Math.round(reservation.totalPrice * LATE_CANCELLATION_RATE),
+      reservation: reservation._id,
+    })
+  }
+
+  // No se borra: queda cancelada y el horario libre otra vez
+  res.json({ data: { ...cancelled.toJSON(), fine } })
 }

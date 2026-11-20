@@ -27,6 +27,14 @@ export const ORDER_STATUS = {
   CANCELLED: ['Cancelado', 'cancelada'],
 }
 
+// Multas: estado → [texto, clase de color de Admin.css]
+export const FINE_STATUS = {
+  PENDING: ['Pendiente', 'pendiente'],
+  PAID: ['Pagada', 'pagado'],
+  WAIVED: ['Anulada', 'cancelada'],
+}
+export const FINE_REASONS = { LATE_CANCELLATION: 'Cancelación tardía', MANUAL: 'Multa manual' }
+
 export const ageRange = (group) => (group.maxAge == null ? `${group.minAge}+ años` : `${group.minAge} - ${group.maxAge} años`)
 
 // "a, b , c" → ['a', 'b', 'c']

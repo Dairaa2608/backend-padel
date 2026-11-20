@@ -48,6 +48,13 @@ export const AuthProvider = ({ children }) => {
     return updatedUser;
   };
 
+  // Vuelve a pedir el usuario a la API (por ejemplo, al aparecer o pagarse una multa)
+  const refreshUser = async () => {
+    const freshUser = await api.me();
+    setUser(freshUser);
+    return freshUser;
+  };
+
   const logout = async () => {
     try {
       await api.logout();
@@ -62,6 +69,7 @@ export const AuthProvider = ({ children }) => {
     register,
     updateProfile,
     verifyCode,
+    refreshUser,
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',

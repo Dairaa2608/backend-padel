@@ -167,6 +167,21 @@ Los números colombianos se aceptan con o sin `+57` (`300 123 4567` → `+573001
 
 Lo que tiene historial (una cancha con reservas, un producto en pedidos, un usuario con compras…) no se borra: se desactiva, para no perder datos.
 
+### Multas
+
+- **Cancelación tardía (automática):** si el dueño cancela una reserva con **menos de 24 horas** de anticipación, se crea una multa del **50 %** del valor de la reserva. Si la cancela el administrador, no hay multa.
+- **Multa manual:** el administrador puede poner una multa a un usuario (daños, conducta…) desde el panel.
+- Mientras tenga una multa **pendiente**, el usuario **no puede reservar, inscribirse en clases o torneos ni comprar** (`403 FINES_PENDING`).
+- El usuario la paga desde **Perfil → Mis multas** (pago simulado con tarjeta o PSE). Si paga en efectivo en el club, el administrador la marca como pagada. El administrador también puede anularla.
+- Las multas pagadas aparecen en el panel de **Ingresos**.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| GET | `/api/fines/me` 🔒 | Mis multas |
+| POST | `/api/fines/:id/pay` 🔒 | Pagar una multa `{ "paymentMethod": "CARD" \| "PSE" }` |
+| GET · POST | `/api/admin/fines` 🛡️ | Todas las multas · poner una multa manual `{ userId, amount, description }` |
+| PATCH | `/api/admin/fines/:id` 🛡️ | `{ "status": "PAID" \| "WAIVED" }` → pagada en efectivo o anulada |
+
 ### Pagos de clases y torneos
 
 Los pagos de inscripciones mensuales, clases sueltas y torneos son simulados: `CARD` y `PSE` quedan como `PAID`, y `CASH` como `PENDING`. El backend calcula y guarda el importe al inscribirse; las clases de cortesía son gratuitas y no requieren método. No se piden ni almacenan números de tarjeta, vencimientos o CVV. El panel de ingresos incluye estos movimientos pagados y pendientes.

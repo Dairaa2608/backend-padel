@@ -321,6 +321,18 @@ class Api {
     return request('/auth/verify/send', { method: 'POST', body: JSON.stringify({ channel }) })
   }
 
+  /* ── MULTAS ───────────────────────────────── */
+
+  /** GET /api/fines/me — mis multas */
+  getMyFines() {
+    return request('/fines/me')
+  }
+
+  /** POST /api/fines/:id/pay — pagar una multa (simulado: CARD o PSE) */
+  payFine(id, paymentMethod) {
+    return request(`/fines/${id}/pay`, { method: 'POST', body: JSON.stringify({ paymentMethod }) })
+  }
+
   /** GET /api/auth/me — usuario de la sesión actual (error 401 si no hay sesión) */
   me() {
     return request('/auth/me')

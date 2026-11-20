@@ -10,7 +10,7 @@ import {
   listMyBookings,
   cancelBooking,
 } from '../controllers/classes.controller.js'
-import { requireAuth, requireVerifiedEmail } from '../middlewares/auth.js'
+import { requireAuth, requireVerifiedEmail, requireNoPendingFines } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
 import { enrollSchema, bookClassSchema } from '../schemas/class.schemas.js'
 
@@ -22,12 +22,12 @@ router.get('/:programId/groups/:groupId/availability', getDayAvailability)
 router.get('/:programId/groups/:groupId/dates', listUpcomingDates)
 
 // Inscripción mensual (2 o 4 personas)
-router.post('/enrollments', requireAuth, requireVerifiedEmail, validate(enrollSchema), enroll)
+router.post('/enrollments', requireAuth, requireVerifiedEmail, requireNoPendingFines, validate(enrollSchema), enroll)
 router.get('/enrollments/me', requireAuth, listMyEnrollments)
 router.patch('/enrollments/:id/cancel', requireAuth, cancelEnrollment)
 
 // Clase suelta o de cortesía (1, 2 o 4 personas)
-router.post('/bookings', requireAuth, requireVerifiedEmail, validate(bookClassSchema), bookClass)
+router.post('/bookings', requireAuth, requireVerifiedEmail, requireNoPendingFines, validate(bookClassSchema), bookClass)
 router.get('/bookings/me', requireAuth, listMyBookings)
 router.patch('/bookings/:id/cancel', requireAuth, cancelBooking)
 

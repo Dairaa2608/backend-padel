@@ -8,6 +8,7 @@ import {
   tournamentSchema, tournamentUpdateSchema, classProgramSchema, classProgramUpdateSchema,
   orderStatusSchema, createUserSchema, updateUserSchema,
 } from '../schemas/admin.schemas.js'
+import { createFineSchema, updateFineSchema } from '../schemas/fine.schemas.js'
 
 const router = Router()
 router.use(requireAuth, requireRole('ADMIN'))
@@ -37,6 +38,10 @@ router.delete('/classes/:id', admin.deleteClassProgram)
 
 router.get('/reservations', admin.listReservations)
 // Para cancelar una reserva se usa PATCH /api/reservations/:id/cancel (permite al ADMIN)
+
+router.get('/fines', admin.listFines)
+router.post('/fines', validate(createFineSchema), admin.createFine)
+router.patch('/fines/:id', validate(updateFineSchema), admin.updateFine)
 
 router.get('/orders', admin.listOrders)
 router.patch('/orders/:id/status', validate(orderStatusSchema), admin.updateOrderStatus)

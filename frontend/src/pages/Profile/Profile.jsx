@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import api from '../../services/api'
 import { getCourtImage, getCourtTypeLabel, formatPrice, formatHour, todayString } from '../../utils/courts'
+import PaymentSimulator from '../../components/PaymentSimulator/PaymentSimulator'
 import './Profile.css'
 
 // Convierte una reserva tal como llega de la API al formato de las tarjetas
@@ -20,6 +21,18 @@ const toViewReservation = (r) => ({
   status: r.status,
 })
 
+// Multa por cancelar tarde: mismas reglas que la API (menos de 24 h → 50 %)
+const LATE_HOURS = 24
+// Hora de Colombia (UTC-5), igual que el servidor, sin importar la zona horaria del computador
+const hoursUntil = (res) => {
+  const [y, m, d] = res.date.split('-').map(Number)
+  return (Date.UTC(y, m - 1, d, res.startHourNumber + 5) - Date.now()) / 3_600_000
+}
+const lateFine = (res) => (res && hoursUntil(res) < LATE_HOURS ? Math.round(res.total * 0.5) : 0)
+
+const FINE_REASONS = { LATE_CANCELLATION: 'Cancelación tardía', MANUAL: 'Multa del club' }
+const FINE_STATUS = { PENDING: 'Pendiente', PAID: 'Pagada', WAIVED: 'Anulada' }
+
 // Confirmada y todavía no ha empezado
 const isUpcoming = (res) => {
   if (res.status !== 'CONFIRMED') return false
@@ -28,15 +41,22 @@ const isUpcoming = (res) => {
 }
 
 function Profile() {
-  const { user, isAuthenticated, isAdmin, logout, updateProfile } = useAuth()
+  const { user, isAuthenticated, isAdmin, logout, updateProfile, refreshUser } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const [reservations, setReservations] = useState([])
   const [editMode, setEditMode] = useState(false)
   const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' })
   const [editError, setEditError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState('reservations')
+  const [activeTab, setActiveTab] = useState(location.state?.tab || 'reservations')
+  const [fines, setFines] = useState([])
+  const [finesMsg, setFinesMsg] = useState(null) // { type: 'ok' | 'error' | 'warn', text }
+  const [fineToPay, setFineToPay] = useState(null)
+  const [payMethod, setPayMethod] = useState('CARD')
+  const [payOutcome, setPayOutcome] = useState('APPROVED')
+  const [paying, setPaying] = useState(false)
   const [cancelTarget, setCancelTarget] = useState(null)
   const [reservationsError, setReservationsError] = useState('')
 
@@ -50,6 +70,11 @@ function Profile() {
       .catch((err) => setReservationsError(err.message))
   }
 
+  // Mis multas
+  const loadFines = () => {
+    api.getMyFines().then(setFines).catch((err) => setFinesMsg({ type: 'error', text: err.message }))
+  }
+
   // Al abrir el perfil se piden mis reservas a la API
   useEffect(() => {
     if (!isAuthenticated) {
@@ -57,17 +82,45 @@ function Profile() {
       return
     }
     loadReservations()
+    loadFines()
   }, [isAuthenticated, navigate])
 
   // La API marca la reserva como cancelada y el horario queda libre otra vez
   const handleCancelReservation = async (id) => {
     try {
-      await api.cancelReservation(id)
+      const cancelled = await api.cancelReservation(id)
       loadReservations()
+      // Si se canceló tarde, la API crea una multa
+      if (cancelled.fine) {
+        setFinesMsg({ type: 'warn', text: `Se generó una multa de ${formatPrice(cancelled.fine.amount)} por cancelar con menos de ${LATE_HOURS} horas. Págala para poder seguir reservando.` })
+        loadFines()
+        refreshUser().catch(() => {})
+        setActiveTab('fines')
+      }
     } catch (err) {
       setReservationsError(err.message)
     } finally {
       setCancelTarget(null)
+    }
+  }
+
+  // Pago simulado de una multa (tarjeta o PSE)
+  const handlePayFine = async () => {
+    if (payOutcome === 'DECLINED') {
+      setFinesMsg({ type: 'error', text: 'El pago fue rechazado (simulación). Prueba otra vez o con otro método.' })
+      return
+    }
+    setPaying(true)
+    try {
+      await api.payFine(fineToPay._id, payMethod)
+      setFinesMsg({ type: 'ok', text: `Multa pagada (${formatPrice(fineToPay.amount)}). Ya puedes seguir reservando.` })
+      setFineToPay(null)
+      loadFines()
+      refreshUser().catch(() => {})
+    } catch (err) {
+      setFinesMsg({ type: 'error', text: err.message })
+    } finally {
+      setPaying(false)
     }
   }
 
@@ -104,6 +157,8 @@ function Profile() {
   const confirmed = reservations.filter(r => r.status === 'CONFIRMED')
   const upcoming = reservations.filter(isUpcoming)
   const past = reservations.filter(r => !isUpcoming(r))
+  const pendingFines = fines.filter((f) => f.status === 'PENDING')
+  const pendingTotal = pendingFines.reduce((sum, f) => sum + f.amount, 0)
 
   return (
     <div className="profile-page">
@@ -132,6 +187,14 @@ function Profile() {
       </div>
 
       <div className="container profile-body">
+
+        {pendingTotal > 0 && activeTab !== 'fines' && (
+          <div className="fines-banner">
+            <i className="material-icons">gavel</i>
+            <span>Tienes {pendingFines.length === 1 ? 'una multa pendiente' : `${pendingFines.length} multas pendientes`} por <b>{formatPrice(pendingTotal)}</b>. Hasta pagarla no puedes reservar, inscribirte ni comprar.</span>
+            <button onClick={() => setActiveTab('fines')}>Ver y pagar</button>
+          </div>
+        )}
 
         {/* Stats */}
         <div className="profile-stats">
@@ -171,6 +234,14 @@ function Profile() {
             {upcoming.length > 0 && (
               <span className="tab-badge">{upcoming.length}</span>
             )}
+          </button>
+          <button
+            className={`profile-tab ${activeTab === 'fines' ? 'active' : ''}`}
+            onClick={() => setActiveTab('fines')}
+          >
+            <i className="material-icons">gavel</i>
+            Mis Multas
+            {pendingFines.length > 0 && <span className="tab-badge fines">{pendingFines.length}</span>}
           </button>
           <button
             className={`profile-tab ${activeTab === 'data' ? 'active' : ''}`}
@@ -216,7 +287,7 @@ function Profile() {
                           key={res.id}
                           res={res}
                           upcoming={true}
-                          onCancel={() => setCancelTarget(res.id)}
+                          onCancel={() => setCancelTarget(res)}
                         />
                       ))}
                     </div>
@@ -243,6 +314,49 @@ function Profile() {
                   </>
                 )}
               </>
+            )}
+          </div>
+        )}
+
+        {/* Tab: Multas */}
+        {activeTab === 'fines' && (
+          <div className="profile-fines">
+            {finesMsg && <p className={`fines-msg ${finesMsg.type}`}>{finesMsg.text}</p>}
+
+            <p className="fines-rules">
+              <i className="material-icons">info</i>
+              Si cancelas una reserva con menos de {LATE_HOURS} horas de anticipación se cobra el 50 % de su valor.
+              El club también puede poner multas por daños o conducta. Con una multa pendiente no puedes reservar, inscribirte ni comprar.
+            </p>
+
+            {fines.length === 0 ? (
+              <div className="profile-empty">
+                <i className="material-icons">sentiment_satisfied</i>
+                <h5>No tienes multas</h5>
+                <p>¡Sigue así!</p>
+              </div>
+            ) : (
+              <div className="fines-list">
+                {fines.map((fine) => (
+                  <div className={`fine-card ${fine.status.toLowerCase()}`} key={fine._id}>
+                    <div className="fine-main">
+                      <span className={`fine-status ${fine.status.toLowerCase()}`}>{FINE_STATUS[fine.status]}</span>
+                      <strong>{FINE_REASONS[fine.reason]}</strong>
+                      <span className="fine-desc">{fine.description}</span>
+                      <small>{new Date(fine.createdAt).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' })}</small>
+                    </div>
+                    <div className="fine-side">
+                      <span className="fine-amount">{formatPrice(fine.amount)}</span>
+                      {fine.status === 'PENDING' && (
+                        <button className="fine-pay-btn" onClick={() => { setFineToPay(fine); setPayMethod('CARD'); setPayOutcome('APPROVED'); setFinesMsg(null) }}>
+                          <i className="material-icons">payments</i>
+                          Pagar
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
@@ -339,6 +453,31 @@ function Profile() {
 
       </div>
 
+      {/* Modal pagar multa */}
+      {fineToPay && (
+        <div className="profile-modal-overlay" onClick={() => setFineToPay(null)}>
+          <div className="profile-modal fine-pay-modal" onClick={e => e.stopPropagation()}>
+            <h5>Pagar multa · {formatPrice(fineToPay.amount)}</h5>
+            <p>{fineToPay.description}</p>
+            <PaymentSimulator
+              method={payMethod}
+              onMethodChange={setPayMethod}
+              outcome={payOutcome}
+              onOutcomeChange={setPayOutcome}
+              methods={['CARD', 'PSE']}
+            />
+            {finesMsg?.type === 'error' && <p className="fines-msg error">{finesMsg.text}</p>}
+            <div className="profile-modal-actions">
+              <button className="profile-modal-confirm pay" onClick={handlePayFine} disabled={paying}>
+                {paying ? 'Pagando…' : `Pagar ${formatPrice(fineToPay.amount)}`}
+              </button>
+              <button className="profile-modal-dismiss" onClick={() => setFineToPay(null)}>Volver</button>
+            </div>
+            <small className="fine-cash-note">¿Prefieres pagar en efectivo? Hazlo en la recepción del club y el administrador la marcará como pagada.</small>
+          </div>
+        </div>
+      )}
+
       {/* Modal cancelar */}
       {cancelTarget && (
         <div className="profile-modal-overlay" onClick={() => setCancelTarget(null)}>
@@ -347,11 +486,17 @@ function Profile() {
               <i className="material-icons">warning</i>
             </div>
             <h5>¿Cancelar reservación?</h5>
-            <p>Esta acción no se puede deshacer.</p>
+            {lateFine(cancelTarget) > 0 ? (
+              <p className="cancel-fine-warning">
+                Faltan menos de {LATE_HOURS} horas: se cobrará una <b>multa de {formatPrice(lateFine(cancelTarget))}</b> (50 % de la reserva).
+              </p>
+            ) : (
+              <p>Esta acción no se puede deshacer. Como faltan más de {LATE_HOURS} horas, no tiene multa.</p>
+            )}
             <div className="profile-modal-actions">
               <button
                 className="profile-modal-confirm"
-                onClick={() => handleCancelReservation(cancelTarget)}
+                onClick={() => handleCancelReservation(cancelTarget.id)}
               >
                 Sí, cancelar
               </button>

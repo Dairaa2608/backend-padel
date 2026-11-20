@@ -16,13 +16,14 @@ export default function PaymentSimulator({
   onOutcomeChange,
   cashLabel = 'Efectivo (pago pendiente)',
   cashDescription = 'La operación quedará pendiente de pago en efectivo.',
+  methods = ['CARD', 'PSE', 'CASH'], // métodos que se ofrecen (las multas no se pagan en efectivo en línea)
 }) {
   const [bank, setBank] = useState(BANKS[0])
 
   return (
     <section className="payment-simulator" aria-label="Simulador de pago">
       <div className="payment-simulator-methods" role="radiogroup" aria-label="Método de pago">
-        {METHODS.map((option) => (
+        {METHODS.filter((option) => methods.includes(option.value)).map((option) => (
           <label
             className={`payment-simulator-method ${method === option.value ? 'active' : ''}`}
             key={option.value}

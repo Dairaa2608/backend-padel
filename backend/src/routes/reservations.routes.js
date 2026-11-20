@@ -5,7 +5,7 @@ import {
   listAllReservations,
   cancelReservation,
 } from '../controllers/reservations.controller.js'
-import { requireAuth, requireRole, requireVerifiedEmail } from '../middlewares/auth.js'
+import { requireAuth, requireRole, requireVerifiedEmail, requireNoPendingFines } from '../middlewares/auth.js'
 import { validate } from '../middlewares/validate.js'
 import { createReservationSchema } from '../schemas/reservation.schemas.js'
 
@@ -14,7 +14,7 @@ const router = Router()
 // Todas las rutas de reservas exigen sesión iniciada
 router.use(requireAuth)
 
-router.post('/', requireVerifiedEmail, validate(createReservationSchema), createReservation)
+router.post('/', requireVerifiedEmail, requireNoPendingFines, validate(createReservationSchema), createReservation)
 router.get('/me', listMyReservations)
 router.get('/', requireRole('ADMIN'), listAllReservations)
 router.patch('/:id/cancel', cancelReservation)

@@ -232,3 +232,12 @@ nav.navbar-main .nav-wrapper.container {
   font-weight: 600;
 }
 .nav-verify-link i { font-size: 1.1rem; margin-right: 4px !important; }
+
+/* Aviso de multa pendiente */
+.nav-fine-link {
+  display: flex !important;
+  align-items: center;
+  color: #fca5a5 !important;
+  font-weight: 600;
+}
+.nav-fine-link i { font-size: 1.1rem; margin-right: 4px !important; }

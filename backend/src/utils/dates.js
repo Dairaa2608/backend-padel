@@ -30,3 +30,9 @@ export function hourFromSlot(slot) {
     const hour = Number(h) % 12
     return period.toUpperCase() === 'PM' ? hour + 12 : hour
 }
+// Horas que faltan para esa hora de ese día (Colombia es UTC-5 todo el año, sin horario de verano)
+export function hoursUntil(date, hour) {
+    const [y, m, d] = date.split('-').map(Number)
+    const start = Date.UTC(y, m - 1, d, hour + 5)
+    return (start - Date.now()) / 3_600_000
+}

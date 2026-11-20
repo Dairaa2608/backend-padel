@@ -642,3 +642,86 @@
 .profile-edit-error i {
   font-size: 1.1rem;
 }
+/* ── Multas ── */
+.fines-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+.fines-banner i { color: #dc2626; }
+.fines-banner span { flex: 1; min-width: 200px; }
+.fines-banner button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: #dc2626;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab-badge.fines { background: #dc2626 !important; }
+
+.fines-rules { display: flex; gap: 8px; align-items: flex-start; color: #555; font-size: 0.9rem; margin: 0 0 18px; }
+.fines-rules i { font-size: 18px; color: #1e3c72; }
+.fines-msg { padding: 10px 14px; border-radius: 10px; font-size: 0.9rem; margin: 0 0 14px; }
+.fines-msg.ok { background: #ecfdf5; color: #065f46; }
+.fines-msg.warn { background: #fffbeb; color: #92400e; }
+.fines-msg.error { background: #fef2f2; color: #991b1b; }
+
+.fines-list { display: flex; flex-direction: column; gap: 12px; }
+.fine-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-left: 4px solid #dc2626;
+}
+.fine-card.paid { border-left-color: #10b981; }
+.fine-card.waived { border-left-color: #9ca3af; opacity: 0.8; }
+.fine-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fine-main strong { color: #1a1a2e; }
+.fine-desc { color: #555; font-size: 0.9rem; }
+.fine-main small { color: #888; }
+.fine-status { align-self: flex-start; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; }
+.fine-status.pending { background: #fee2e2; color: #b91c1c; }
+.fine-status.paid { background: #d1fae5; color: #047857; }
+.fine-status.waived { background: #f3f4f6; color: #4b5563; }
+.fine-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.fine-amount { font-size: 1.15rem; font-weight: 700; color: #1a1a2e; white-space: nowrap; }
+.fine-pay-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: none; border-radius: 8px; padding: 8px 14px;
+  background: #0a7c5c; color: #fff; font-weight: 600; cursor: pointer;
+}
+.fine-pay-btn i { font-size: 18px; }
+
+.cancel-fine-warning { color: #b91c1c; background: #fef2f2; padding: 10px 12px; border-radius: 10px; }
+.fine-pay-modal { max-width: 480px; text-align: left; }
+.profile-modal-confirm.pay { background: #0a7c5c !important; }
+.profile-modal-confirm:disabled { opacity: 0.6; cursor: wait; }
+.fine-cash-note { display: block; margin-top: 12px; color: #777; text-align: center; }
+
+@media (max-width: 560px) {
+  .fine-card { flex-direction: column; }
+  .fine-side { align-items: flex-start; }
+}
+
+[data-theme="dark"] .fines-banner { background: rgba(220, 38, 38, 0.12); border-color: rgba(220, 38, 38, 0.4); color: #fca5a5; }
+[data-theme="dark"] .fines-rules { color: var(--dm-text-body); }
+[data-theme="dark"] .fines-rules i { color: #6ee7b7; }
+[data-theme="dark"] .fine-card { background: var(--dm-bg-card); border-color: var(--dm-border-subtle); }
+[data-theme="dark"] .fine-main strong, [data-theme="dark"] .fine-amount { color: #fff; }
+[data-theme="dark"] .fine-desc { color: var(--dm-text-body); }
+[data-theme="dark"] .fines-msg.ok { background: rgba(16, 185, 129, 0.12); color: #6ee7b7; }
+[data-theme="dark"] .fines-msg.warn { background: rgba(245, 158, 11, 0.12); color: #fcd34d; }
+[data-theme="dark"] .fines-msg.error, [data-theme="dark"] .cancel-fine-warning { background: rgba(220, 38, 38, 0.12); color: #fca5a5; }

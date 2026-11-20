@@ -6,11 +6,12 @@ import { sendMail } from '../utils/mailer.js'
 import { welcomeEmail, verificationEmail, verificationSms } from '../emails/welcome.js'
 import { createCode, checkCode } from '../utils/verification.js'
 import { sendSms } from '../utils/sms.js'
+import { withFines } from '../utils/fines.js'
 
 // Inicia la sesión: guarda el token en una cookie y devuelve el usuario
-function sendSession(res, statusCode, user) {
+async function sendSession(res, statusCode, user) {
 res.cookie(COOKIE_NAME, createToken(user), cookieOptions)
-res.status(statusCode).json({ data: user })
+res.status(statusCode).json({ data: await withFines(user) })
 }
 
 // POST /api/auth/register
@@ -26,7 +27,7 @@ const passwordHash = await bcrypt.hash(password, 10)
   // La cuenta nace sin verificar. Como en Gmail, todavía no se envía ningún código:
   // en la página /verificar la persona elige si lo quiere por correo o por SMS.
 const user = await User.create({ name, email, passwordHash, phone, emailVerified: false, phoneVerified: phone ? false : undefined })
-sendSession(res, 201, user)
+await sendSession(res, 201, user)
 }
 
 // Envía un código por el canal elegido. El primer correo es el de bienvenida (con el código)
@@ -46,7 +47,7 @@ const user = await User.findById(req.user._id).select('+verification')
 const result = checkCode(user, channel, code)
 await user.save()
 if (!result.ok) throw new AppError(400, 'INVALID_CODE', result.message)
-res.json({ data: user })
+res.json({ data: await withFines(user) })
 }
 
 // POST /api/auth/verify/send { channel: 'email' | 'phone' } → envía (o reenvía) el código
@@ -75,7 +76,7 @@ if (!valid) {
     throw new AppError(401, 'INVALID_CREDENTIALS', 'Email o contraseña incorrectos')
 }
 
-sendSession(res, 200, user)
+await sendSession(res, 200, user)
 }
 
 // POST /api/auth/logout
@@ -85,6 +86,6 @@ res.json({ data: { message: 'Sesión cerrada' } })
 }
 
 // GET /api/auth/me → el usuario de la sesión actual
-export function me(req, res) {
-res.json({ data: req.user })
+export async function me(req, res) {
+res.json({ data: await withFines(req.user) })
 }

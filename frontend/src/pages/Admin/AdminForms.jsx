@@ -9,9 +9,10 @@ const TITLES = {
   tournaments: 'Torneo',
   classes: 'Programa de Clases',
   users: 'Usuario',
+  fines: 'Multa',
 }
 
-export default function AdminModal({ resource, item, onClose, onSave }) {
+export default function AdminModal({ resource, item, users = [], onClose, onSave }) {
   const Form = FORMS[resource]
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -35,7 +36,7 @@ export default function AdminModal({ resource, item, onClose, onSave }) {
           <h3>{item ? 'Editar' : 'Nuevo'} {TITLES[resource]}</h3>
           <button className="modal-close-btn" onClick={onClose} aria-label="Cerrar">&times;</button>
         </div>
-        <Form item={item} onSubmit={submit} onCancel={onClose} saving={saving} error={error} />
+        <Form item={item} users={users} onSubmit={submit} onCancel={onClose} saving={saving} error={error} />
       </div>
     </div>
   )
@@ -394,10 +395,43 @@ function UserForm({ item, onSubmit, ...footer }) {
   )
 }
 
+/* ── Multa manual ─────────────────────────────────── */
+
+function FineForm({ onSubmit, users, ...footer }) {
+  const clients = users.filter((u) => u.role !== 'ADMIN')
+  const [f, set] = useForm({ userId: '', amount: 50000, description: '' })
+
+  const submit = (e) => {
+    e.preventDefault()
+    onSubmit({ userId: f.userId, amount: Number(f.amount), description: f.description })
+  }
+
+  return (
+    <form onSubmit={submit}>
+      <div className="modal-body-pro">
+        <Field label="Usuario">
+          <select required value={f.userId} onChange={set('userId')}>
+            <option value="">Elige un usuario…</option>
+            {clients.map((u) => <option key={u._id} value={u._id}>{u.name} · {u.email}</option>)}
+          </select>
+        </Field>
+        <Field label="Valor ($)" hint="Mínimo $1.000">
+          <input type="number" min="1000" step="1000" required value={f.amount} onChange={set('amount')} />
+        </Field>
+        <Field label="Motivo" hint="Lo verá el usuario en su perfil">
+          <textarea required rows="2" minLength={5} value={f.description} onChange={set('description')} placeholder="Ej.: daño en la red de la Cancha Central" />
+        </Field>
+      </div>
+      <Footer {...footer} label="Poner multa" />
+    </form>
+  )
+}
+
 const FORMS = {
   courts: CourtForm,
   products: ProductForm,
   tournaments: TournamentForm,
   classes: ClassForm,
   users: UserForm,
+  fines: FineForm,
 }

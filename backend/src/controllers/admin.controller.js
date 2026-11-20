@@ -2,7 +2,7 @@
 import bcrypt from 'bcryptjs'
 import {
   User, Court, Reservation, ClassProgram, ClassEnrollment, ClassBooking, ClassSession,
-  Tournament, TournamentRegistration, Product, Order,
+  Tournament, TournamentRegistration, Product, Order, Fine,
 } from '../models/index.js'
 import { AppError } from '../utils/AppError.js'
 
@@ -68,7 +68,7 @@ export async function getRevenueReport(req, res) {
       label: new Intl.DateTimeFormat('es-CO', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date),
       total: 0,
       pending: 0,
-      categories: { courts: 0, store: 0, classes: 0, tournaments: 0 },
+      categories: { courts: 0, store: 0, classes: 0, tournaments: 0, fines: 0 },
     }]
   }))
 
@@ -80,7 +80,7 @@ export async function getRevenueReport(req, res) {
     ],
   }
   const recordedPayment = { $in: ['PAID', 'PENDING'] }
-  const [reservations, orders, classBookings, classEnrollments, tournamentRegistrations] = await Promise.all([
+  const [reservations, orders, classBookings, classEnrollments, tournamentRegistrations, fines] = await Promise.all([
     Reservation.find({ status: 'CONFIRMED', createdAt })
       .populate('user', 'name email')
       .populate('court', 'name'),
@@ -95,6 +95,9 @@ export async function getRevenueReport(req, res) {
     TournamentRegistration.find({ status: 'ACTIVE', amount: { $gt: 0 }, paymentStatus: recordedPayment, ...paymentDateInRange })
       .populate('user', 'name email')
       .populate('tournament', 'name'),
+    // Multas: pagadas (ingreso) y pendientes (por cobrar)
+    Fine.find({ status: { $in: ['PAID', 'PENDING'] }, $or: [{ paidAt: createdAt }, { status: 'PENDING', createdAt }] })
+      .populate('user', 'name email'),
   ])
 
   const transactions = [
@@ -153,6 +156,17 @@ export async function getRevenueReport(req, res) {
       paymentMethod: registration.paymentMethod,
       status: registration.paymentStatus,
     })),
+    ...fines.map((fine) => ({
+      id: `fine-${fine._id}`,
+      date: fine.paidAt ?? fine.createdAt,
+      customer: fine.user?.name ?? 'Usuario eliminado',
+      email: fine.user?.email ?? '',
+      category: 'fines',
+      description: `Multa · ${fine.description}`,
+      amount: fine.amount,
+      paymentMethod: fine.paymentMethod ?? null,
+      status: fine.status,
+    })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date))
 
   const summary = {
@@ -161,7 +175,7 @@ export async function getRevenueReport(req, res) {
     confirmedTransactions: 0,
     pendingTransactions: 0,
     paymentMethodsRecorded: 0,
-    categories: { courts: 0, store: 0, classes: 0, tournaments: 0 },
+    categories: { courts: 0, store: 0, classes: 0, tournaments: 0, fines: 0 },
   }
 
   for (const transaction of transactions) {
@@ -468,9 +482,10 @@ export async function deleteUser(req, res) {
     ClassEnrollment.exists({ user: user._id }),
     ClassBooking.exists({ user: user._id }),
     TournamentRegistration.exists({ user: user._id }),
+    Fine.exists({ user: user._id }),
   ])
   if (hasHistory.some(Boolean)) {
-    throw new AppError(409, 'IN_USE', 'Este usuario tiene reservas, pedidos o inscripciones: no se puede borrar')
+    throw new AppError(409, 'IN_USE', 'Este usuario tiene reservas, pedidos, inscripciones o multas: no se puede borrar')
   }
   await user.deleteOne()
   res.json({ data: { deleted: true, id: user._id } })
@@ -484,4 +499,33 @@ export async function listReservations(req, res) {
     .populate('user', 'name email phone')
     .sort({ date: -1, startHour: -1 })
   res.json({ data: reservations })
+}
+
+/* ── Multas ───────────────────────────────────────── */
+
+// GET /api/admin/fines → todas las multas, con el usuario
+export async function listFines(req, res) {
+  const fines = await Fine.find().populate('user', 'name email phone').populate('createdBy', 'name').sort({ createdAt: -1 })
+  res.json({ data: fines })
+}
+
+// POST /api/admin/fines → multa manual (daños, conducta…)
+export async function createFine(req, res) {
+  const { userId, amount, description } = req.body
+  const user = await User.findById(userId)
+  if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'Usuario no encontrado')
+  const fine = await Fine.create({ user: user._id, reason: 'MANUAL', amount, description, createdBy: req.user._id })
+  res.status(201).json({ data: await fine.populate('user', 'name email phone') })
+}
+
+// PATCH /api/admin/fines/:id { status: 'PAID' | 'WAIVED' } → pagada en el club o anulada
+export async function updateFine(req, res) {
+  const { status } = req.body
+  const fine = await Fine.findOneAndUpdate(
+    { _id: req.params.id, status: 'PENDING' },
+    { $set: { status, ...(status === 'PAID' && { paymentMethod: 'CASH', paidAt: new Date() }) } },
+    { returnDocument: 'after' },
+  ).populate('user', 'name email phone')
+  if (!fine) throw new AppError(409, 'FINE_NOT_PENDING', 'La multa no existe o ya no está pendiente')
+  res.json({ data: fine })
 }

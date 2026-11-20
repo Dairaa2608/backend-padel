@@ -1,5 +1,6 @@
 import { User } from '../models/index.js'
 import { AppError } from '../utils/AppError.js'
+import { withFines } from '../utils/fines.js'
 
 // PATCH /api/users/me → el usuario edita su propio perfil.
 // Si cambia el correo o el teléfono, queda sin verificar (se verifica de nuevo en /verificar).
@@ -18,7 +19,7 @@ export async function updateMe(req, res) {
   if (phoneChanged) user.phoneVerified = phone ? false : undefined
   await user.save()
 
-  res.json({ data: user })
+  res.json({ data: await withFines(user) })
 }
 
 // GET /api/users → lista de usuarios (solo ADMIN)
