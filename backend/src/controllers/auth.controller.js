@@ -3,7 +3,8 @@ import { User } from '../models/index.js'
 import { AppError } from '../utils/AppError.js'
 import { COOKIE_NAME, cookieOptions, createToken } from '../utils/token.js'
 import { sendMail } from '../utils/mailer.js'
-import { welcomeEmail } from '../emails/welcome.js'
+import { welcomeEmail, welcomeSms } from '../emails/welcome.js'
+import { sendSms } from '../utils/sms.js'
 
 // Inicia la sesión: guarda el token en una cookie y devuelve el usuario
 function sendSession(res, statusCode, user) {
@@ -27,6 +28,8 @@ sendSession(res, 201, user)
   // Correo de bienvenida. Se envía después de responder, así el registro no espera
   // a Gmail, y si el correo falla la cuenta igual queda creada.
 sendMail({ to: user.email, ...welcomeEmail(user) })
+  // Si dio su teléfono, también le llega la bienvenida al celular
+if (user.phone) sendSms({ to: user.phone, body: welcomeSms(user) })
 }
 
 // POST /api/auth/login

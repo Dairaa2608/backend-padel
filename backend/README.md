@@ -86,6 +86,17 @@ Cuando alguien se registra, la API le envía un correo de bienvenida desde una c
 
 Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no llega a ninguna bandeja, pero en la consola de la API aparece `✉️ Correo de prueba para ... → ábrelo aquí: https://ethereal.email/message/...`. Abre ese enlace para ver el correo. El registro nunca falla por culpa del correo.
 
+## Mensaje de bienvenida al celular (opcional)
+
+Si la persona escribe su teléfono al registrarse, también recibe la bienvenida por **SMS o WhatsApp** con [Twilio](https://www.twilio.com):
+
+1. Crea una cuenta gratis en Twilio. La cuenta de prueba trae saldo, pero **solo envía a números verificados**: en la consola de Twilio ve a *Phone Numbers → Verified Caller IDs* y verifica tu celular.
+2. En *Account Info* copia el **Account SID** y el **Auth Token**, y consigue un número de Twilio (*Get a phone number*).
+3. En `backend/.env` añade `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM` (el número de Twilio, con `+`), y reinicia la API.
+4. Para WhatsApp en lugar de SMS: activa el *Sandbox de WhatsApp* de Twilio, únete desde tu celular con el código que te muestra y pon `SMS_CHANNEL="whatsapp"` y `TWILIO_FROM` = el número del sandbox.
+
+Los números colombianos se aceptan con o sin `+57` (`300 123 4567` → `+573001234567`). Si Twilio no está configurado, el mensaje se muestra en la consola de la API. Igual que con el correo, si el envío falla el registro no se ve afectado.
+
 ## Scripts
 
 | Comando | Qué hace |

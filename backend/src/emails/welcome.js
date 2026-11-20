@@ -55,3 +55,9 @@ El equipo de PadelZone`
 
   return { subject, text, html }
 }
+
+// Mensaje corto de bienvenida para el celular (SMS o WhatsApp)
+export function welcomeSms({ name }) {
+  const firstName = name.split(' ')[0]
+  return `¡Hola, ${firstName}! Bienvenido a PadelZone 🎾 Tu cuenta ya está lista: reserva canchas, inscríbete en clases y prueba tu clase de cortesía gratis.`
+}
