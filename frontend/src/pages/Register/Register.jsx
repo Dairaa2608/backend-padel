@@ -105,7 +105,8 @@ function Register() {
         phone: form.phone,
       })
 
-      navigate(from, { replace: true, state: location.state })
+      // Después de registrarse se verifica la cuenta con el código que llegó al correo
+      navigate('/verificar', { replace: true, state: { from, justRegistered: true } })
     } catch (err) {
       setError(err.message || 'Error al registrarse. Inténtalo de nuevo.')
     } finally {

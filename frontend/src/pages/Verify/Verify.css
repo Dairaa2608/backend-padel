@@ -1,0 +1,74 @@
+/* Página "Verifica tu cuenta" (usa el fondo y la tarjeta de Register.css) */
+.verify-card { max-width: 560px; margin: -40px auto 60px; display: flex; flex-direction: column; gap: 16px; }
+
+.verify-box {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fafafa;
+}
+.verify-box.verified { align-items: center; border-color: #a7f3d0; background: #ecfdf5; }
+.verify-box.verified .verify-icon { color: #0a7c5c; }
+.verify-icon { font-size: 28px; color: #1e3c72; }
+.verify-body { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.verify-destination { display: block; font-size: 0.85rem; color: #555; word-break: break-all; }
+
+.verify-row { display: flex; gap: 10px; margin-top: 6px; }
+.verify-input {
+  flex: 1;
+  min-width: 0;
+  height: 48px !important;
+  margin: 0 !important;
+  padding: 0 12px !important;
+  border: 2px solid #d1d5db !important;
+  border-radius: 10px !important;
+  font-size: 1.6rem !important;
+  letter-spacing: 0.4em;
+  text-align: center;
+  font-weight: 700;
+  box-sizing: border-box !important;
+  background: #fff !important;
+}
+.verify-input:focus { border-color: #0a7c5c !important; box-shadow: none !important; }
+
+.verify-btn, .verify-continue {
+  border: none;
+  border-radius: 10px;
+  padding: 0 20px;
+  background: #0a7c5c;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.verify-continue { height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 1rem; }
+
+.verify-msg { margin: 0; font-size: 0.85rem; }
+.verify-msg.error { color: #c62828; }
+.verify-msg.ok { color: #0a7c5c; }
+
+.verify-resend { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.verify-resend small { color: #777; }
+.verify-resend button { border: none; background: none; color: #1e3c72; font-weight: 600; cursor: pointer; padding: 0; }
+.verify-resend button:disabled { color: #9ca3af; cursor: default; }
+
+.verify-note { display: flex; align-items: center; gap: 8px; margin: 0; color: #92400e; background: #fef3c7; padding: 10px 14px; border-radius: 10px; font-size: 0.9rem; }
+.verify-footer { margin: 0; text-align: center; font-size: 0.85rem; color: #666; }
+
+@media (max-width: 480px) {
+  .verify-row { flex-direction: column; }
+  .verify-btn { height: 44px; }
+}
+
+/* Modo oscuro */
+[data-theme="dark"] .verify-box { background: var(--dm-bg-input); border-color: var(--dm-border-subtle); }
+[data-theme="dark"] .verify-box.verified { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.4); }
+[data-theme="dark"] .verify-icon { color: #6ee7b7; }
+[data-theme="dark"] .verify-destination,
+[data-theme="dark"] .verify-resend small,
+[data-theme="dark"] .verify-footer { color: var(--dm-text-body); }
+[data-theme="dark"] .verify-input { background: var(--dm-bg-card) !important; border-color: var(--dm-border-hover) !important; color: #fff !important; }
+[data-theme="dark"] .verify-resend button { color: #6ee7b7; }
+[data-theme="dark"] .verify-note { background: rgba(245, 158, 11, 0.12); color: #fcd34d; }

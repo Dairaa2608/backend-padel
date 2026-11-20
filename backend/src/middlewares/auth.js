@@ -32,3 +32,12 @@ export const requireRole = (...roles) => (req, res, next) => {
     }
     next()
 }
+
+
+// Para reservar, inscribirse o comprar hay que haber verificado el correo con el código
+export function requireVerifiedEmail(req, res, next) {
+  if (req.user.emailVerified === false) {
+    return next(new AppError(403, 'EMAIL_NOT_VERIFIED', 'Primero verifica tu correo con el código que te enviamos'))
+  }
+  next()
+}

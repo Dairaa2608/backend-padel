@@ -76,6 +76,21 @@ Debe aparecer `🚀 API escuchando en http://localhost:3000/api`. Abre en el nav
 
 Para apagarla: **Ctrl + C**.
 
+## Verificación de la cuenta con código
+
+Al registrarse, la cuenta queda **sin verificar** y se envía un **código de 6 dígitos** al correo (y otro al celular si dio su teléfono). La página lleva a **/verificar** para escribirlo.
+
+- Hasta verificar el correo **no se puede reservar, inscribirse en clases o torneos ni comprar** (la API responde `403 EMAIL_NOT_VERIFIED`). Verificar el teléfono es opcional.
+- Los códigos se guardan **cifrados**, vencen a los **15 minutos**, permiten **5 intentos** y para pedir otro hay que esperar **60 segundos**.
+- Si se cambia el correo o el teléfono en el perfil, hay que verificarlo de nuevo.
+- Las cuentas creadas antes (las de prueba y el administrador) cuentan como verificadas.
+- En modo prueba (sin Gmail ni Twilio en el `.env`) el código aparece en la terminal de la API.
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| POST | `/api/auth/verify` 🔒 | `{ "channel": "email" \| "phone", "code": "123456" }` |
+| POST | `/api/auth/verify/resend` 🔒 | `{ "channel": "email" \| "phone" }` → envía un código nuevo |
+
 ## Correo de bienvenida (opcional)
 
 Cuando alguien se registra, la API le envía un correo de bienvenida desde una cuenta de Gmail:
@@ -91,6 +106,17 @@ Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no lle
 El chatbot usa la API de Gemini desde el backend. Configura `GEMINI_API_KEY` en `backend/.env`; nunca pongas esta clave en el frontend ni la subas a Git. Puedes establecer `GEMINI_MODEL` si tu clave tiene habilitado otro modelo. Sin la clave, el resto de la API funciona normalmente y el chatbot informa que no está configurado.
 
 El endpoint público `POST /api/chatbot` limita los mensajes por IP y no almacena el historial en Gemini. Envía hasta 12 mensajes alternados con `role` (`user` o `assistant`) y `content`.
+
+## Mensaje de bienvenida al celular (opcional)
+
+Si la persona escribe su teléfono al registrarse, también recibe la bienvenida por **SMS o WhatsApp** con [Twilio](https://www.twilio.com):
+
+1. Crea una cuenta gratis en Twilio. La cuenta de prueba trae saldo, pero **solo envía a números verificados**: en la consola de Twilio ve a *Phone Numbers → Verified Caller IDs* y verifica tu celular.
+2. En *Account Info* copia el **Account SID** y el **Auth Token**, y consigue un número de Twilio (*Get a phone number*).
+3. En `backend/.env` añade `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` y `TWILIO_FROM` (el número de Twilio, con `+`), y reinicia la API.
+4. Para WhatsApp en lugar de SMS: activa el *Sandbox de WhatsApp* de Twilio, únete desde tu celular con el código que te muestra y pon `SMS_CHANNEL="whatsapp"` y `TWILIO_FROM` = el número del sandbox.
+
+Los números colombianos se aceptan con o sin `+57` (`300 123 4567` → `+573001234567`). Si Twilio no está configurado, el mensaje se muestra en la consola de la API. Igual que con el correo, si el envío falla el registro no se ve afectado.
 
 ## Scripts
 
