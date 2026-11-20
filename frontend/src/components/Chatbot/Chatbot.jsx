@@ -3,7 +3,7 @@ import { api } from '../../services/api'
 import './Chatbot.css'
 
 const GREETING = '¡Hola! Soy el asistente de PadelZone. ¿En qué puedo ayudarte?'
-const SUGGESTIONS = ['Reservar una cancha', 'Ver clases', 'Consultar torneos', 'Productos de la tienda']
+const SUGGESTIONS = ['Reservar una cancha', 'Precios y cupos de clases', 'Consultar torneos', 'Precio y stock de productos']
 
 function getRecentMessages(messages, newMessage) {
   const recent = [...messages, newMessage].slice(-12)

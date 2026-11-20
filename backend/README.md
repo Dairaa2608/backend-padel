@@ -105,7 +105,7 @@ Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no lle
 
 El chatbot usa OpenRouter desde el backend y el enrutador `openrouter/free`, que selecciona un modelo gratuito disponible y no hace fallback a modelos de pago. Crea una cuenta y una clave en <https://openrouter.ai/settings/keys>, y configúrala como `OPENROUTER_API_KEY` en `backend/.env`. No pongas la clave en el frontend ni la subas a Git. El nivel gratuito tiene límites de uso (actualmente 50 solicitudes diarias sin comprar créditos); los modelos gratuitos disponibles pueden cambiar. Después de editar `.env`, reinicia `npm run dev`. Sin la clave, el resto de la API funciona normalmente y el chatbot informa que no está configurado.
 
-El endpoint público `POST /api/chatbot` limita los mensajes por IP y no guarda el historial en la base de datos. El contenido se envía a OpenRouter y al proveedor del modelo gratuito seleccionado; no incluyas datos personales. Envía hasta 12 mensajes alternados con `role` (`user` o `assistant`) y `content`.
+El endpoint público `POST /api/chatbot` limita los mensajes por IP y no guarda el historial en la base de datos. En cada solicitud incluye en el contexto del modelo el inventario público activo, los precios de canchas y clases, los cupos de grupos y torneos, y la disponibilidad de canchas/clases cuando la conversación especifica una fecha. El contenido de la conversación se envía a OpenRouter y al proveedor del modelo gratuito seleccionado; no incluyas datos personales. Envía hasta 12 mensajes alternados con `role` (`user` o `assistant`) y `content`.
 
 ## Mensaje de bienvenida al celular (opcional)
 
