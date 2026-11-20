@@ -34,6 +34,7 @@ export default function Admin() {
   const [tab, setTab] = useState('dashboard')
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState(null)
+  const [loadError, setLoadError] = useState(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [modal, setModal] = useState(null) // { resource, item }
@@ -47,8 +48,8 @@ export default function Admin() {
   }
 
   // Carga todo de una vez (son pocos datos) para que los contadores del menú estén al día
-  const loadAll = useCallback(() =>
-    Promise.all([
+  const loadAll = useCallback(() => {
+    return Promise.all([
       api.getAdminStats(),
       api.adminList('courts'),
       api.getAllReservations(),
@@ -56,14 +57,18 @@ export default function Admin() {
       api.adminList('tournaments'),
       api.adminList('products'),
       api.getAllOrders(),
-      api.adminList('users'),
+      api.adminList('users/details'),
     ])
       .then(([s, courts, reservations, classes, tournaments, products, orders, users]) => {
         setStats(s)
         setData({ courts, reservations, classes, tournaments, products, orders, users })
       })
-      .catch((err) => showToast(`No se pudieron cargar los datos: ${err.message}`, 'error'))
-      .finally(() => setLoading(false)), [])
+      .catch((err) => {
+        setLoadError(err.message)
+        showToast(`No se pudieron cargar los datos: ${err.message}`, 'error')
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   useEffect(() => { loadAll() }, [loadAll])
 
@@ -75,6 +80,7 @@ export default function Admin() {
 
   const refresh = () => {
     setLoading(true)
+    setLoadError(null)
     loadAll()
   }
 
@@ -184,6 +190,13 @@ export default function Admin() {
 
           {loading && !stats ? (
             <p className="admin-empty-state">Cargando datos…</p>
+          ) : !stats ? (
+            <div className="admin-empty-state" role="alert">
+              <i className="material-icons">error_outline</i>
+              <h4>No se pudo cargar el panel</h4>
+              <p>{loadError || 'Revisa tu sesión y la conexión con la API.'}</p>
+              <button className="btn-admin-action-primary" onClick={refresh}>Reintentar</button>
+            </div>
           ) : (
             <>
               {tab === 'dashboard' && <Dashboard stats={stats} reservations={data.reservations} onRefresh={refresh} loading={loading} goTo={changeTab} />}
@@ -329,9 +342,10 @@ export default function Admin() {
               )}
 
               {tab === 'users' && (
-                <Section title="Usuarios y roles" subtitle="Crea cuentas, cambia datos y decide quién es administrador" onNew={() => setModal({ resource: 'users' })} newLabel="Nuevo usuario">
+                <Section title="Usuarios y roles" subtitle="Participación, pedidos pendientes y compras de cada usuario" onNew={() => setModal({ resource: 'users' })} newLabel="Nuevo usuario">
                   <Toolbar search={search} onSearch={setSearch} placeholder="Buscar por nombre o email…" />
-                  <Table head={['Nombre', 'Email', 'Teléfono', 'Rol', 'Registro', 'Acciones']}
+                  <p className="admin-small">La deuda refleja pedidos pendientes; los pagos de clases y torneos no se registran en el sistema.</p>
+                  <Table head={['Nombre', 'Email', 'Teléfono', 'Rol', 'Torneo', 'Clase', 'Deuda', 'Compró productos', 'Registro', 'Acciones']}
                     rows={data.users.filter((u) => matches(search, u.name, u.email))}
                     render={(u) => (
                       <tr key={u._id}>
@@ -339,6 +353,10 @@ export default function Admin() {
                         <td>{u.email}</td>
                         <td>{u.phone || '-'}</td>
                         <td><span className={`pill-status ${u.role === 'ADMIN' ? 'admin' : 'cliente'}`}>{ROLES[u.role]}</span></td>
+                        <td><span className={`pill-status ${u.hasTournament ? 'disponible' : 'cliente'}`}>{u.hasTournament ? 'Sí' : 'No'}</span></td>
+                        <td><span className={`pill-status ${u.hasClass ? 'disponible' : 'cliente'}`}>{u.hasClass ? 'Sí' : 'No'}</span></td>
+                        <td><span className={`pill-status ${u.hasDebt ? 'pendiente' : 'pagado'}`}>{u.hasDebt ? 'Pendiente' : 'No'}</span></td>
+                        <td><span className={`pill-status ${u.hasProduct ? 'disponible' : 'cliente'}`}>{u.hasProduct ? 'Sí' : 'No'}</span></td>
                         <td>{formatDate(u.createdAt)}</td>
                         <td><Actions onEdit={() => setModal({ resource: 'users', item: u })} onDelete={() => remove('users', u, u.name)} /></td>
                       </tr>

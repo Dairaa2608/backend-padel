@@ -86,6 +86,12 @@ Cuando alguien se registra, la API le envía un correo de bienvenida desde una c
 
 Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no llega a ninguna bandeja, pero en la consola de la API aparece `✉️ Correo de prueba para ... → ábrelo aquí: https://ethereal.email/message/...`. Abre ese enlace para ver el correo. El registro nunca falla por culpa del correo.
 
+## Chatbot de Gemini (opcional)
+
+El chatbot usa la API de Gemini desde el backend. Configura `GEMINI_API_KEY` en `backend/.env`; nunca pongas esta clave en el frontend ni la subas a Git. Puedes establecer `GEMINI_MODEL` si tu clave tiene habilitado otro modelo. Sin la clave, el resto de la API funciona normalmente y el chatbot informa que no está configurado.
+
+El endpoint público `POST /api/chatbot` limita los mensajes por IP y no almacena el historial en Gemini. Envía hasta 12 mensajes alternados con `role` (`user` o `assistant`) y `content`.
+
 ## Scripts
 
 | Comando | Qué hace |
@@ -100,6 +106,7 @@ Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no lle
 | Método | Ruta | Qué devuelve |
 |---|---|---|
 | GET | `/api/health` | Estado de la API y de la conexión a MongoDB |
+| POST | `/api/chatbot` | Respuesta conversacional del asistente de Gemini (si está configurado) |
 | GET | `/api/courts` | Canchas activas |
 | GET | `/api/courts/:id` | Una cancha |
 | GET | `/api/courts/:id/availability?date=` | Horas libres y ocupadas de una cancha ese día |

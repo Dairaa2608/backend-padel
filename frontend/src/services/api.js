@@ -129,6 +129,13 @@ class Api {
     return request('/orders/me')
   }
 
+  sendChatMessage(messages) {
+    return request('/chatbot', {
+      method: 'POST',
+      body: JSON.stringify({ messages }),
+    })
+  }
+
   /* ── PANEL DE ADMINISTRADOR (solo role ADMIN) ── */
 
   /** GET /api/admin/stats — números del panel general */
@@ -138,7 +145,7 @@ class Api {
 
   /**
    * Lista, crea, edita y borra en el panel: resource es
-   * 'courts' | 'products' | 'tournaments' | 'classes' | 'users'
+   * 'courts' | 'products' | 'tournaments' | 'classes' | 'users' | 'users/details'
    */
   adminList(resource) {
     return request(`/admin/${resource}`)
@@ -311,39 +318,6 @@ class Api {
     })
   }
 
-  /* ── ADMIN (Panel de Administración) ──────── */
-  // Canchas
-  createCourt(body) { return request('/courts', { method: 'POST', body: JSON.stringify(body) }) }
-  updateCourt(id, body) { return request(`/courts/${id}`, { method: 'PUT', body: JSON.stringify(body) }) }
-  deleteCourt(id) { return request(`/courts/${id}`, { method: 'DELETE' }) }
-
-  // Reservas
-  getAllReservations() { return request('/reservations') }
-
-  // Clases
-  createClass(body) { return request('/classes', { method: 'POST', body: JSON.stringify(body) }) }
-  updateClass(id, body) { return request(`/classes/${id}`, { method: 'PUT', body: JSON.stringify(body) }) }
-  deleteClass(id) { return request(`/classes/${id}`, { method: 'DELETE' }) }
-
-  // Torneos
-  createTournament(body) { return request('/tournaments', { method: 'POST', body: JSON.stringify(body) }) }
-  updateTournament(id, body) { return request(`/tournaments/${id}`, { method: 'PUT', body: JSON.stringify(body) }) }
-  deleteTournament(id) { return request(`/tournaments/${id}`, { method: 'DELETE' }) }
-
-  // Productos
-  createProduct(body) { return request('/products', { method: 'POST', body: JSON.stringify(body) }) }
-  updateProduct(id, body) { return request(`/products/${id}`, { method: 'PUT', body: JSON.stringify(body) }) }
-  deleteProduct(id) { return request(`/products/${id}`, { method: 'DELETE' }) }
-
-  // Pedidos
-  getAllOrders() { return request('/orders') }
-  updateOrderStatus(id, estado) { return request(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ estado }) }) }
-
-  // Usuarios
-  getUsers() { return request('/users') }
-  createUser(body) { return request('/users', { method: 'POST', body: JSON.stringify(body) }) }
-  updateUser(id, body) { return request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(body) }) }
-  deleteUser(id) { return request(`/users/${id}`, { method: 'DELETE' }) }
 }
 
 /* ══════════════════════════════════════════════════

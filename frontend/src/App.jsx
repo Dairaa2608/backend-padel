@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Navbar from './components/Navbar/Navbar'
 import Footer from './components/Footer/Footer'
+import Chatbot from './components/Chatbot/Chatbot'
 import Home from './pages/Home/Home'
 import Reservations from './pages/Reservations/Reservations'
 import Login from './pages/Login/Login'
@@ -47,7 +48,16 @@ const AdminRoute = ({ children }) => {
   const { isAuthenticated, loading, user } = useAuth()
   const location = useLocation()
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <div className="loading-screen" role="status" aria-live="polite">
+        <i className="material-icons spinning" style={{ fontSize: '48px', color: '#1e3c72' }}>
+          refresh
+        </i>
+        <span>Verificando acceso…</span>
+      </div>
+    )
+  }
   if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />
   if (user?.role !== 'ADMIN') return <Navigate to="/" replace />
   return children
@@ -90,6 +100,7 @@ function Layout({ children }) {
       {!isAdmin && <Navbar />}
       {children}
       {!isAdmin && <Footer />}
+      {!isAdmin && <Chatbot />}
     </>
   )
 }

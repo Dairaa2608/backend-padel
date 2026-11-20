@@ -242,8 +242,38 @@ export async function updateOrderStatus(req, res) {
 
 /* ── Usuarios ─────────────────────────────────────── */
 
+// GET /api/admin/users/details → lista usuarios con info de torneos, clases y compras
+
+// GET /api/admin/users → lista básica de usuarios
 export async function listUsers(req, res) {
-  res.json({ data: await User.find().sort({ createdAt: -1 }) })
+  const users = await User.find().sort({ createdAt: -1 })
+  res.json({ data: users })
+}
+
+export async function listUsersDetails(req, res) {
+  const users = await User.find().sort({ createdAt: -1 })
+  const data = await Promise.all(users.map(async (user) => {
+    const [hasTournament, hasEnrollment, hasBooking, hasDebt, hasProduct] = await Promise.all([
+      TournamentRegistration.exists({ user: user._id, status: 'ACTIVE' }),
+      ClassEnrollment.exists({ user: user._id, status: 'ACTIVE' }),
+      ClassBooking.exists({ user: user._id, status: 'ACTIVE' }),
+      Order.exists({ user: user._id, status: 'PENDING' }),
+      Order.exists({ user: user._id, status: { $in: ['PAID', 'PENDING'] } }),
+    ])
+    return {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      createdAt: user.createdAt,
+      hasTournament: !!hasTournament,
+      hasClass: !!(hasEnrollment || hasBooking),
+      hasDebt: !!hasDebt,
+      hasProduct: !!hasProduct,
+    }
+  }))
+  res.json({ data })
 }
 
 export async function createUser(req, res) {

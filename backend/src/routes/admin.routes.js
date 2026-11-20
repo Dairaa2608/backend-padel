@@ -41,6 +41,7 @@ router.get('/orders', admin.listOrders)
 router.patch('/orders/:id/status', validate(orderStatusSchema), admin.updateOrderStatus)
 
 router.get('/users', admin.listUsers)
+router.get('/users/details', admin.listUsersDetails)
 router.post('/users', validate(createUserSchema), admin.createUser)
 router.patch('/users/:id', validate(updateUserSchema), admin.updateUser)
 router.delete('/users/:id', admin.deleteUser)
