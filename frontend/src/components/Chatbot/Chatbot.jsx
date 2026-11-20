@@ -70,7 +70,7 @@ export default function Chatbot() {
             <div className="chatbot-brand-icon"><i className="material-icons" aria-hidden="true">sports_tennis</i></div>
             <div className="chatbot-header-copy">
               <h2 id="chatbot-title">Asistente PadelZone</h2>
-              <span>Asistente con IA · Gemini</span>
+              <span>Asistente con IA</span>
             </div>
             <button className="chatbot-header-button" type="button" onClick={() => setIsOpen(false)} aria-label="Cerrar chat">
               <i className="material-icons" aria-hidden="true">close</i>
@@ -117,7 +117,7 @@ export default function Chatbot() {
               <i className="material-icons" aria-hidden="true">send</i>
             </button>
           </form>
-          <p className="chatbot-disclaimer">Asistente con IA Gemini. No compartas datos personales.</p>
+          <p className="chatbot-disclaimer">Asistente con IA. No compartas datos personales.</p>
         </section>
       )}
 

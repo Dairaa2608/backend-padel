@@ -86,11 +86,11 @@ Cuando alguien se registra, la API le envía un correo de bienvenida desde una c
 
 Si no se configuran, se usa un **buzón de prueba (Ethereal)**: el correo no llega a ninguna bandeja, pero en la consola de la API aparece `✉️ Correo de prueba para ... → ábrelo aquí: https://ethereal.email/message/...`. Abre ese enlace para ver el correo. El registro nunca falla por culpa del correo.
 
-## Chatbot de Gemini (opcional)
+## Chatbot gratuito con OpenRouter
 
-El chatbot usa la API de Gemini desde el backend. Configura `GEMINI_API_KEY` en `backend/.env`; nunca pongas esta clave en el frontend ni la subas a Git. Puedes establecer `GEMINI_MODEL` si tu clave tiene habilitado otro modelo. Sin la clave, el resto de la API funciona normalmente y el chatbot informa que no está configurado.
+El chatbot usa OpenRouter desde el backend y el enrutador `openrouter/free`, que selecciona un modelo gratuito disponible y no hace fallback a modelos de pago. Crea una cuenta y una clave en <https://openrouter.ai/settings/keys>, y configúrala como `OPENROUTER_API_KEY` en `backend/.env`. No pongas la clave en el frontend ni la subas a Git. El nivel gratuito tiene límites de uso (actualmente 50 solicitudes diarias sin comprar créditos); los modelos gratuitos disponibles pueden cambiar. Después de editar `.env`, reinicia `npm run dev`. Sin la clave, el resto de la API funciona normalmente y el chatbot informa que no está configurado.
 
-El endpoint público `POST /api/chatbot` limita los mensajes por IP y no almacena el historial en Gemini. Envía hasta 12 mensajes alternados con `role` (`user` o `assistant`) y `content`.
+El endpoint público `POST /api/chatbot` limita los mensajes por IP y no guarda el historial en la base de datos. El contenido se envía a OpenRouter y al proveedor del modelo gratuito seleccionado; no incluyas datos personales. Envía hasta 12 mensajes alternados con `role` (`user` o `assistant`) y `content`.
 
 ## Scripts
 
@@ -106,7 +106,7 @@ El endpoint público `POST /api/chatbot` limita los mensajes por IP y no almacen
 | Método | Ruta | Qué devuelve |
 |---|---|---|
 | GET | `/api/health` | Estado de la API y de la conexión a MongoDB |
-| POST | `/api/chatbot` | Respuesta conversacional del asistente de Gemini (si está configurado) |
+| POST | `/api/chatbot` | Respuesta conversacional del asistente con IA (si está configurado) |
 | GET | `/api/courts` | Canchas activas |
 | GET | `/api/courts/:id` | Una cancha |
 | GET | `/api/courts/:id/availability?date=` | Horas libres y ocupadas de una cancha ese día |
@@ -220,3 +220,5 @@ erDiagram
 | `EADDRINUSE: address already in use :::3000` | Ya hay otra API encendida en el puerto 3000: ciérrala (Ctrl + C en su terminal) o cambia `PORT` en `.env` |
 | `Invalid scheme, expected connection string to start with "mongodb://"` | La línea `MONGODB_URI` de `.env` está mal escrita: espacios, comillas curvas o falta `mongodb://` |
 | `querySrv ENOTFOUND` | La dirección del clúster está mal copiada, o tu red bloquea MongoDB (prueba con otra red) |
+| `ERR_MODULE_NOT_FOUND: Cannot find package 'cors'` | Instala las dependencias desde la carpeta `backend/` con `npm install` y vuelve a iniciar la API |
+| `401` o `403` al usar OpenRouter | Revisa que `OPENROUTER_API_KEY` sea una clave activa de <https://openrouter.ai/settings/keys>. No compartas la clave; el motivo del proveedor aparece en la consola del backend. |
