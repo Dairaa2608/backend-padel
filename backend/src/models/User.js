@@ -33,10 +33,18 @@ const userSchema = new mongoose.Schema(
         // Lo que no tiene el campo cuenta como verificado
         ret.emailVerified = doc.emailVerified !== false
         ret.phoneVerified = doc.phone ? doc.phoneVerified !== false : false
+        // La cuenta queda verificada con el correo O con el teléfono (como en Gmail)
+        ret.accountVerified = isAccountVerified(doc)
         return ret
       },
     },
   },
 )
+
+// ¿Confirmó la cuenta? Basta con el correo o con el teléfono.
+// Las cuentas antiguas (sin el campo emailVerified) cuentan como verificadas.
+export function isAccountVerified(user) {
+  return user.emailVerified !== false || user.phoneVerified === true
+}
 
 export const User = mongoose.model('User', userSchema)

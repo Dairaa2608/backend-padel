@@ -24,6 +24,7 @@ router.get('/me', requireAuth, me)
 
 // Verificación de la cuenta con código (correo o teléfono)
 router.post('/verify', requireAuth, authLimiter, validate(verifySchema), verify)
-router.post('/verify/resend', requireAuth, validate(resendSchema), resendCode)
+router.post('/verify/send', requireAuth, validate(resendSchema), resendCode)
+router.post('/verify/resend', requireAuth, validate(resendSchema), resendCode) // mismo que /send
 
 export default router

@@ -23,24 +23,19 @@ if (await User.exists({ email })) {
 
 const passwordHash = await bcrypt.hash(password, 10)
   // El rol nunca viene del cliente: todo registro nuevo es USER.
-  // La cuenta nace sin verificar: se envía un código al correo (y al celular si lo dio).
-const user = new User({ name, email, passwordHash, phone, emailVerified: false, phoneVerified: phone ? false : undefined })
-const emailCode = createCode(user, 'email')
-const phoneCode = phone ? createCode(user, 'phone') : null
-await user.save()
+  // La cuenta nace sin verificar. Como en Gmail, todavía no se envía ningún código:
+  // en la página /verificar la persona elige si lo quiere por correo o por SMS.
+const user = await User.create({ name, email, passwordHash, phone, emailVerified: false, phoneVerified: phone ? false : undefined })
 sendSession(res, 201, user)
-
-  // Se envían después de responder: el registro no espera a Gmail ni a Twilio,
-  // y si algo falla la cuenta igual queda creada (se puede pedir otro código)
-sendMail({ to: user.email, ...welcomeEmail(user, emailCode) })
-if (phoneCode) sendSms({ to: user.phone, body: verificationSms(phoneCode) })
 }
 
-// Envía un código nuevo por el canal pedido
+// Envía un código por el canal elegido. El primer correo es el de bienvenida (con el código)
 export async function sendVerificationCode(user, channel) {
+const firstEmail = channel === 'email' && !user.verification?.email?.sentAt
 const code = createCode(user, channel)
 await user.save()
-if (channel === 'email') sendMail({ to: user.email, ...verificationEmail(user, code) })
+  // Se envía sin esperar: la página no se queda colgada por Gmail o Twilio
+if (channel === 'email') sendMail({ to: user.email, ...(firstEmail ? welcomeEmail(user, code) : verificationEmail(user, code)) })
 else sendSms({ to: user.phone, body: verificationSms(code) })
 }
 
@@ -54,7 +49,7 @@ if (!result.ok) throw new AppError(400, 'INVALID_CODE', result.message)
 res.json({ data: user })
 }
 
-// POST /api/auth/verify/resend { channel: 'email' | 'phone' }
+// POST /api/auth/verify/send { channel: 'email' | 'phone' } → envía (o reenvía) el código
 export async function resendCode(req, res) {
 const { channel } = req.body
 const user = await User.findById(req.user._id).select('+verification')

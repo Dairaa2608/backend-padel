@@ -72,3 +72,55 @@
 [data-theme="dark"] .verify-input { background: var(--dm-bg-card) !important; border-color: var(--dm-border-hover) !important; color: #fff !important; }
 [data-theme="dark"] .verify-resend button { color: #6ee7b7; }
 [data-theme="dark"] .verify-note { background: rgba(245, 158, 11, 0.12); color: #fcd34d; }
+
+/* ── Elegir método (como Gmail) ── */
+.verify-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 4px; text-align: center; color: #1a1a2e; }
+.verify-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s, background 0.2s, transform 0.1s;
+}
+.verify-option:hover:not(:disabled) { border-color: #0a7c5c; background: #f0fdf4; }
+.verify-option:active:not(:disabled) { transform: scale(0.99); }
+.verify-option:disabled { opacity: 0.6; cursor: wait; }
+.verify-option-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.verify-option-text strong { color: #1a1a2e; font-size: 1rem; }
+.verify-option-text span { color: #555; font-size: 0.9rem; word-break: break-all; }
+.verify-arrow { color: #9ca3af; }
+
+/* ── Escribir el código ── */
+.verify-step { display: flex; flex-direction: column; align-items: stretch; gap: 12px; text-align: center; }
+.verify-big-icon { font-size: 48px !important; color: #1e3c72; align-self: center; }
+.verify-big-icon.done { color: #0a7c5c; }
+.verify-step .verify-destination { text-align: center; }
+.verify-step .verify-input { flex: none; width: 100%; }
+.verify-continue:disabled { opacity: 0.5; cursor: not-allowed; }
+.verify-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  color: #1e3c72;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px;
+}
+.verify-back i { font-size: 18px; }
+
+[data-theme="dark"] .verify-title,
+[data-theme="dark"] .verify-option-text strong { color: #fff; }
+[data-theme="dark"] .verify-option { background: var(--dm-bg-input); border-color: var(--dm-border-subtle); }
+[data-theme="dark"] .verify-option:hover:not(:disabled) { border-color: #10b981; background: rgba(16, 185, 129, 0.08); }
+[data-theme="dark"] .verify-option-text span { color: var(--dm-text-body); }
+[data-theme="dark"] .verify-big-icon { color: #6ee7b7; }
+[data-theme="dark"] .verify-back { color: #6ee7b7; }

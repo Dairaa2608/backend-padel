@@ -78,18 +78,18 @@ Para apagarla: **Ctrl + C**.
 
 ## Verificación de la cuenta con código
 
-Al registrarse, la cuenta queda **sin verificar** y se envía un **código de 6 dígitos** al correo (y otro al celular si dio su teléfono). La página lleva a **/verificar** para escribirlo.
+Al registrarse, la cuenta queda **sin verificar** y la página lleva a **/verificar**. Como en Gmail, primero la persona **elige cómo recibir el código**: por **correo** o por **SMS** (si dio su teléfono). Solo entonces se envía un **código de 6 dígitos**, y lo escribe en la página.
 
-- Hasta verificar el correo **no se puede reservar, inscribirse en clases o torneos ni comprar** (la API responde `403 EMAIL_NOT_VERIFIED`). Verificar el teléfono es opcional.
+- Basta con verificar **uno** de los dos (correo o teléfono). Hasta entonces **no se puede reservar, inscribirse en clases o torneos ni comprar** (la API responde `403 ACCOUNT_NOT_VERIFIED`).
 - Los códigos se guardan **cifrados**, vencen a los **15 minutos**, permiten **5 intentos** y para pedir otro hay que esperar **60 segundos**.
-- Si se cambia el correo o el teléfono en el perfil, hay que verificarlo de nuevo.
+- Si se cambia el correo o el teléfono en el perfil, ese dato vuelve a quedar sin verificar.
 - Las cuentas creadas antes (las de prueba y el administrador) cuentan como verificadas.
 - En modo prueba (sin Gmail ni Twilio en el `.env`) el código aparece en la terminal de la API.
 
 | Método | Ruta | Qué hace |
 |---|---|---|
 | POST | `/api/auth/verify` 🔒 | `{ "channel": "email" \| "phone", "code": "123456" }` |
-| POST | `/api/auth/verify/resend` 🔒 | `{ "channel": "email" \| "phone" }` → envía un código nuevo |
+| POST | `/api/auth/verify/send` 🔒 | `{ "channel": "email" \| "phone" }` → envía el código por el canal elegido |
 
 ## Correo de bienvenida (opcional)
 

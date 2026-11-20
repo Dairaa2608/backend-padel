@@ -1,3 +1,4 @@
+import { isAccountVerified } from '../models/User.js'
 import { User } from '../models/index.js'
 import { AppError } from '../utils/AppError.js'
 import { COOKIE_NAME, verifyToken } from '../utils/token.js'
@@ -34,10 +35,10 @@ export const requireRole = (...roles) => (req, res, next) => {
 }
 
 
-// Para reservar, inscribirse o comprar hay que haber verificado el correo con el código
+// Para reservar, inscribirse o comprar hay que haber verificado la cuenta (por correo o por SMS)
 export function requireVerifiedEmail(req, res, next) {
-  if (req.user.emailVerified === false) {
-    return next(new AppError(403, 'EMAIL_NOT_VERIFIED', 'Primero verifica tu correo con el código que te enviamos'))
+  if (!isAccountVerified(req.user)) {
+    return next(new AppError(403, 'ACCOUNT_NOT_VERIFIED', 'Primero verifica tu cuenta con un código por correo o por SMS'))
   }
   next()
 }

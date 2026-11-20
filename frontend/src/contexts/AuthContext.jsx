@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'ADMIN',
-    needsVerification: user?.emailVerified === false,
+    needsVerification: user?.accountVerified === false,
     loading
   };
 
